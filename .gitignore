@@ -1,3 +1,9 @@
+# Train and test data
+split_Ori_Face/
+
+# PyCharm
+.idea/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
