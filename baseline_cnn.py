@@ -28,6 +28,18 @@ class loader(Dataset):
 
         return img, label
 
+    def get_class_weights(self):
+        """
+        Calculate the weight for each class based on number of samples of that class. Also weight = 1
+        for the unknown class 0.
+        :return: torch.Tensor - size = [#classes + 1,]
+        """
+        label_counts = self.frame.label.value_counts().sort_index()  # Count images pr label
+        class_weights = 1 / torch.Tensor(label_counts.to_list())
+        class_weights = torch.cat((torch.Tensor([1.0]), class_weights), 0)
+        class_weights = class_weights.float()
+        return class_weights
+
 
 class Nnet(nn.Module):
     def __init__(self):
@@ -49,7 +61,7 @@ class Nnet(nn.Module):
             nn.Linear(1183, 300),
             nn.ReLU(inplace=True),
             nn.Linear(300, 201),
-            #nn.Softmax()
+            # nn.Softmax()
         )
 
     def num_flat_features(self, inputs):
@@ -67,3 +79,9 @@ class Nnet(nn.Module):
         x = self.main(input)
         x = x.view(-1, self.num_flat_features(x))
         return self.fc(x)
+
+
+transform = transforms.Compose([transforms.Resize(224), transforms.CenterCrop(224), transforms.ToTensor()])
+dataset = loader('train.csv', './datasets/cs154-fa19-public/', transform=transform)
+print(dataset.get_class_weights())
+
