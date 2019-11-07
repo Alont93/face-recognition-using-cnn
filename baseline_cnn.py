@@ -49,7 +49,7 @@ class Nnet(nn.Module):
             nn.Linear(1183, 300),
             nn.ReLU(inplace=True),
             nn.Linear(300, 201),
-            nn.Softmax()
+            #nn.Softmax()
         )
 
     def num_flat_features(self, inputs):
