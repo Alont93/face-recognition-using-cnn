@@ -79,9 +79,3 @@ class Nnet(nn.Module):
         x = self.main(input)
         x = x.view(-1, self.num_flat_features(x))
         return self.fc(x)
-
-
-transform = transforms.Compose([transforms.Resize(224), transforms.CenterCrop(224), transforms.ToTensor()])
-dataset = loader('train.csv', './datasets/cs154-fa19-public/', transform=transform)
-print(dataset.get_class_weights())
-
