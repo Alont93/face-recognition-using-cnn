@@ -1,5 +1,5 @@
 # Train and test data
-split_Ori_Face/
+datasets/cs154-fa19-public/split_Ori_Face/
 
 # PyCharm
 .idea/
