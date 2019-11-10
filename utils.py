@@ -113,7 +113,7 @@ def evaluate(output, labels):
     truth_per_class = get_truth(output, labels)
     evaluate_per_class = []
     for c in range(output.shape[1]):
-        TP, FP, TN, FN = truth_per_class[c]
+        TP, FP, TN, FN = list(map(lambda x: x.item(), truth_per_class[c]))
         accuracy = (TP + TN) / (TP + FP + TN + FN)
         precision = TP / (FP + TP + 10 ** (-8))
         recall = TP / (TP + FN + 10 ** (-8))

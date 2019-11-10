@@ -42,7 +42,7 @@ class loader(Dataset):
 
 
 class Nnet(nn.Module):
-    def __init__(self):
+    def __init__(self, num_classes=201):
         super(Nnet, self).__init__()
         self.main = nn.Sequential(
             nn.Conv2d(3, 21, 3, stride=2, padding=1, bias=False),
@@ -60,7 +60,7 @@ class Nnet(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(1183, 300),
             nn.ReLU(inplace=True),
-            nn.Linear(300, 201),
+            nn.Linear(300, num_classes),
             # nn.Softmax()
         )
 
