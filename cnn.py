@@ -15,7 +15,7 @@ from torchvision import transforms
 import matplotlib.pyplot as plt
 
 # Custom utils file
-from utils import evaluate, weights_init, get_k_fold_indecies
+from utils import evaluate, weights_init, get_k_fold_indecies, get_transformer
 
 logging.basicConfig(filename='app.log', filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -192,24 +192,29 @@ if __name__ == '__main__':
     BATCH_SIZE = 64
     NUM_CLASSES = 201
     K = 2
-    LOCAL = False
+    TRAIN_CSV = "train.csv"
+    TEST_CSV = "test.csv"
+    DATASET_PATH = "./datasets/cs154-fa19-public/"
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--local", "-l", help="If running locally or on ieng6")
-    parser.add_argument("--epochs", "-e", help="Number of epochs")
+    parser.add_argument("--server", "-s", help="If running on server", type=bool, default=False)
+    parser.add_argument("--epochs", "-e", help="Number of epochs", type=int, default=50)
+    parser.add_argument("--mini", "-m", help="Do you want to run with only 10 classes?", type=bool, default=False)
 
     args = parser.parse_args()
-    if args.local:
-        LOCAL = bool(args.local)
-
+    if args.server:
+        DATASET_PATH = '/datasets/cs154-fa19-public/'
     if args.epochs:
-        EPOCHS = int(args.epochs)
+        EPOCHS = args.epochs
+    if args.mini:
+        NUM_CLASSES = 11
+        TRAIN_CSV = "mini_train.csv"
+        TEST_CSV = "mini_test.csv"
 
-    dataset_path = './datasets/cs154-fa19-public/' if LOCAL else '/datasets/cs154-fa19-public/'
-
-    transform = transforms.Compose([transforms.Resize(224), transforms.CenterCrop(224), transforms.ToTensor()])
-    dataset = Loader('train.csv', dataset_path, transform=transform)
-    test_dataset = Loader('test.csv', dataset_path, transform=transform)
+    # Load and transform data
+    transform = get_transformer(alon=True)
+    dataset = Loader(TRAIN_CSV, DATASET_PATH, transform=transform)
+    test_dataset = Loader(TEST_CSV, DATASET_PATH, transform=transform)
 
     # Train k models and keep the best
     best_model = train(dataset, NUM_CLASSES, epochs=EPOCHS, batch_size=BATCH_SIZE, k_folds=K)

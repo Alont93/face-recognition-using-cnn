@@ -3,6 +3,22 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 import torchvision
 from sklearn.model_selection import KFold
+from torchvision import transforms
+
+
+def get_transformer(alon=True):
+    if alon:
+        MAX_ANGLE_TO_ROTATE = 30
+        DATASET_MEANS = [0.44853166, 0.36957467, 0.3424105]
+        DATASET_STD = [0.3184785, 0.28314784, 0.27949163]
+        return transforms.Compose([transforms.Resize(224),
+                                   transforms.CenterCrop(224),
+                                   transforms.RandomRotation(MAX_ANGLE_TO_ROTATE),
+                                   transforms.ToTensor(),
+                                   transforms.Normalize(mean=DATASET_MEANS, std=DATASET_STD)])
+    else:
+        # Default
+        return transforms.Compose([transforms.Resize(224), transforms.CenterCrop(224), transforms.ToTensor()])
 
 
 def rand_train_val_split(dataset, validation_split=0.2, shuffle_dataset=True, random_seed=42):
@@ -31,10 +47,13 @@ def get_k_fold_indecies(dataset, k=3):
     return kf.split(indices)
 
 
-def weights_init(m):
+def weights_init(m, xavier=False):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
-        nn.init.normal_(m.weight.data, 0.0, 0.02)
+        if xavier:
+            nn.init.xavier_uniform_(m.weight.data)
+        else:
+            nn.init.normal_(m.weight.data, 0.0, 0.02)
     elif classname.find('BatchNorm') != -1:
         nn.init.normal_(m.weight.data, 1.0, 0.02)
         nn.init.constant_(m.bias.data, 0)
