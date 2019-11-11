@@ -9,7 +9,7 @@ import pandas as pd
 import os
 
 
-class loader(Dataset):
+class Loader(Dataset):
     def __init__(self, csv_file, root_dir, transform=None):
         self.transform = transform
         self.frame = pd.read_csv(csv_file)

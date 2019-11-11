@@ -1,3 +1,5 @@
+import argparse
+
 from baseline_cnn import *
 import torch
 from torch.autograd import Variable
@@ -38,7 +40,7 @@ def train(dataset, weighted_loss=False, epochs=10, batch_size=64, k_folds=3):
     # Get a lists of train-val-split for k folds
     k_folds_indecies = get_k_fold_indecies(dataset, k=k_folds)
     for k, (train_indices, val_indices) in enumerate(k_folds_indecies):
-        print("#"*20 + "\n " + "Training Model {}".format(k))
+        print("#" * 20 + "\n " + "Training Model {}".format(k))
 
         # Load data for this fold
         train_sampler = SubsetRandomSampler(train_indices)
@@ -157,14 +159,23 @@ def test(net, test_dataset):
 
 
 if __name__ == '__main__':
-    EPOCHS = 2
+    EPOCHS = 50
     BATCH_SIZE = 64
     NUM_CLASSES = 11
     K = 3
+    LOCAL = True
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--local", "-l", help="If running locally or on ieng6")
+    args = parser.parse_args()
+    if args.local:
+        LOCAL = bool(args.local)
+
+    dataset_path = './datasets/cs154-fa19-public/' if LOCAL else '/datasets/cs154-fa19-public/'
 
     transform = transforms.Compose([transforms.Resize(224), transforms.CenterCrop(224), transforms.ToTensor()])
-    dataset = loader('mini_train.csv', './datasets/cs154-fa19-public/', transform=transform)
-    test_dataset = loader("mini_test.csv", './datasets/cs154-fa19-public/', transform=transform)
+    dataset = Loader('mini_train.csv', dataset_path, transform=transform)
+    test_dataset = Loader("mini_test.csv", dataset_path, transform=transform)
 
     # Train k models and keep the best
     best_model = train(dataset, epochs=EPOCHS, batch_size=BATCH_SIZE, k_folds=K)
