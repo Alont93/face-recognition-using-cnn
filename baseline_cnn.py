@@ -2,6 +2,7 @@ from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 from torch.utils.data.sampler import SubsetRandomSampler
+import torchvision.models as models
 import numpy as np
 import torch
 import torch.nn as nn
@@ -60,8 +61,37 @@ class Nnet(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(1183, 300),
             nn.ReLU(inplace=True),
-            nn.Linear(300, num_classes),
-            # nn.Softmax()
+            nn.Linear(300, num_classes)
+        )
+
+        self.train_epoch_losses = []
+        self.val_epoch_losses = []
+
+    def num_flat_features(self, inputs):
+        # Get the dimensions of the layers excluding the inputs
+        size = inputs.size()[1:]
+        # Track the number of features
+        num_features = 1
+
+        for s in size:
+            num_features *= s
+
+        return num_features
+
+    def forward(self, input):
+        x = self.main(input)
+        x = x.view(-1, self.num_flat_features(x))
+        return self.fc(x)
+
+
+class TransferNet(nn.Module):
+    def __init__(self, num_classes=201):
+        super(TransferNet, self).__init__()
+        self.main = nn.Sequential(models.vgg16(pretrained=True))
+        self.fc = nn.Sequential(
+            nn.Linear(1000, 300),
+            nn.ReLU(inplace=True),
+            nn.Linear(300, num_classes)
         )
 
         self.train_epoch_losses = []
