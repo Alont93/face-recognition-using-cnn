@@ -10,9 +10,10 @@ import torch.optim as optim
 
 # Data utils and dataloader
 from torchvision import transforms
+import matplotlib.pyplot as plt
 
 # Custom utils file
-from utils import evaluate, weights_init
+from utils import evaluate, weights_init, get_k_fold_indecies
 
 logging.basicConfig(filename='app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
 
@@ -32,29 +33,17 @@ def check_cuda():
     return computing_device, extras
 
 
-def rand_train_val_split(dataset, validation_split=0.2, shuffle_dataset=True, random_seed=42):
-    # Creating data indices for training and validation splits:
-    dataset_size = len(dataset)
-    indices = list(range(dataset_size))
-    split = int(np.floor(validation_split * dataset_size))
-    if shuffle_dataset:
-        np.random.seed(random_seed)
-        np.random.shuffle(indices)
-    train_indices, val_indices = indices[split:], indices[:split]
-    return train_indices, val_indices
-
-
-def train(dataset, weighted_loss=False, epochs=10, batch_size=64):
+def train(dataset, weighted_loss=False, epochs=10, batch_size=64, k_folds=3):
     computing_device, extra = check_cuda()
 
-    # TODO: Init k set of indecies instead of one
-    train_indecies, val_indecies = rand_train_val_split(dataset)
-    k_train_indecies = [train_indecies]
-    k_val_indecies = [val_indecies]
-    # TODO: For K in k-fold (Make lists of all the indecies before this loop)
+    # Save all the k models to compare
     nnets = []
-    for k, (train_indices, val_indices) in enumerate(zip(k_train_indecies, k_val_indecies)):
-        logging.info("Training Model {}".format(k))
+
+    # Get a lists of train-val-split for k folds
+    k_folds_indecies = get_k_fold_indecies(dataset, k=k_folds)
+    for k, (train_indices, val_indices) in enumerate(k_folds_indecies):
+        logging.info("#" * 20 + "\n " + "Training Model {}".format(k))
+
         # Load data for this fold
         train_sampler = SubsetRandomSampler(train_indices)
         valid_sampler = SubsetRandomSampler(val_indices)
@@ -67,16 +56,18 @@ def train(dataset, weighted_loss=False, epochs=10, batch_size=64):
 
         # Initialize optimizer and criterion
         if weighted_loss:
-            criterion = criterion = nn.CrossEntropyLoss(weight=dataset.get_class_weights())
+            criterion = nn.CrossEntropyLoss(weight=dataset.get_class_weights())
         else:
             criterion = nn.CrossEntropyLoss()
         optimizer = optim.Adam(net.parameters(), lr=0.0001, weight_decay=0.0005)
 
+        # Fit and save model to file
         save_path = "./model{}.pth".format(k)
-        fit_model(computing_device, net, criterion, optimizer, train_loader, validation_loader, save_path=save_path)
+        fit_model(computing_device, net, criterion, optimizer, train_loader, validation_loader, epochs=epochs,
+                  save_path=save_path)
         nnets.append(net)
 
-    # TODO: Return the best model
+    # TODO: Compare models and return the best
     return nnets[0]
 
 
@@ -94,10 +85,7 @@ def fit_model(computing_device, net, criterion, optimizer, train_loader, validat
     :param save_path: string
     :return:
     """
-    # Initalize k models
-
     for epoch in range(epochs):
-
         N_minibatch_loss = 0.0
         N = 50
 
@@ -155,9 +143,24 @@ def fit_model(computing_device, net, criterion, optimizer, train_loader, validat
 
             # Save this epochs validation loss
             val_epoch_loss = np.average(np.array(val_batch_losses))
-            net.validation_epoch_losses.append(val_epoch_loss)
+            net.val_epoch_losses.append(val_epoch_loss)
 
         logging.info('Epoch %d Training loss: %.3f Validation loss: %.3f' % (epoch + 1, train_epoch_loss, val_epoch_loss))
+
+
+def plot_loss(net):
+    """
+    Plot training- and validation loss over epochs
+    :param net: nn.Module
+    :return:
+    """
+    plt.plot(net.train_epoch_losses, label="train loss")
+    plt.plot(net.val_epoch_losses, label="validation loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Cross Entropy Loss")
+    plt.title("Loss as a function of number of epochs")
+    plt.legend()
+    plt.show()
 
 
 def test(net, test_dataset):
@@ -177,6 +180,7 @@ if __name__ == '__main__':
     EPOCHS = 1
     BATCH_SIZE = 64
     NUM_CLASSES = 11
+    K = 2
     LOCAL = True
 
     parser = argparse.ArgumentParser()
@@ -185,13 +189,13 @@ if __name__ == '__main__':
     if args.local:
         LOCAL = bool(args.local)
 
-    transform = transforms.Compose([transforms.Resize(224), transforms.CenterCrop(224), transforms.ToTensor()])
-
     dataset_path = './datasets/cs154-fa19-public/' if LOCAL else '/datasets/cs154-fa19-public/'
 
-
+    transform = transforms.Compose([transforms.Resize(224), transforms.CenterCrop(224), transforms.ToTensor()])
     dataset = Loader('mini_train.csv', dataset_path, transform=transform)
     test_dataset = Loader("mini_test.csv", dataset_path, transform=transform)
 
     # Train k models and keep the best
-    best_model = train(dataset)
+    best_model = train(dataset, epochs=EPOCHS, batch_size=BATCH_SIZE, k_folds=K)
+    plot_loss(best_model)
+    test(best_model, test_dataset)

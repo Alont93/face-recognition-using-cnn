@@ -2,6 +2,33 @@ import numpy as np
 import torch.nn as nn
 import matplotlib.pyplot as plt
 import torchvision
+from sklearn.model_selection import KFold
+
+
+def rand_train_val_split(dataset, validation_split=0.2, shuffle_dataset=True, random_seed=42):
+    # Creating data indices for training and validation splits:
+    dataset_size = len(dataset)
+    indices = list(range(dataset_size))
+    split = int(np.floor(validation_split * dataset_size))
+    if shuffle_dataset:
+        np.random.seed(random_seed)
+        np.random.shuffle(indices)
+    train_indices, val_indices = indices[split:], indices[:split]
+    return train_indices, val_indices
+
+
+def get_k_fold_indecies(dataset, k=3):
+    """
+    Return k train-validation splits
+    :param dataset: Dataset
+    :param k: int
+    :return:
+    """
+    dataset_size = len(dataset)
+    indices = list(range(dataset_size))
+    np.random.shuffle(indices)
+    kf = KFold(n_splits=k, shuffle=True, random_state=42)
+    return kf.split(indices)
 
 
 def weights_init(m):
