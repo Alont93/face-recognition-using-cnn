@@ -9,7 +9,7 @@ import pandas as pd
 import os
 
 
-class loader(Dataset):
+class Loader(Dataset):
     def __init__(self, csv_file, root_dir, transform=None):
         self.transform = transform
         self.frame = pd.read_csv(csv_file)
@@ -63,6 +63,9 @@ class Nnet(nn.Module):
             nn.Linear(300, num_classes),
             # nn.Softmax()
         )
+
+        self.train_epoch_losses = []
+        self.val_epoch_losses = []
 
     def num_flat_features(self, inputs):
         # Get the dimensions of the layers excluding the inputs

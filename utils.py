@@ -1,4 +1,58 @@
 import numpy as np
+import torch.nn as nn
+import matplotlib.pyplot as plt
+import torchvision
+from sklearn.model_selection import KFold
+
+
+def rand_train_val_split(dataset, validation_split=0.2, shuffle_dataset=True, random_seed=42):
+    # Creating data indices for training and validation splits:
+    dataset_size = len(dataset)
+    indices = list(range(dataset_size))
+    split = int(np.floor(validation_split * dataset_size))
+    if shuffle_dataset:
+        np.random.seed(random_seed)
+        np.random.shuffle(indices)
+    train_indices, val_indices = indices[split:], indices[:split]
+    return train_indices, val_indices
+
+
+def get_k_fold_indecies(dataset, k=3):
+    """
+    Return k train-validation splits
+    :param dataset: Dataset
+    :param k: int
+    :return:
+    """
+    dataset_size = len(dataset)
+    indices = list(range(dataset_size))
+    np.random.shuffle(indices)
+    kf = KFold(n_splits=k, shuffle=True, random_state=42)
+    return kf.split(indices)
+
+
+def weights_init(m):
+    classname = m.__class__.__name__
+    if classname.find('Conv') != -1:
+        nn.init.normal_(m.weight.data, 0.0, 0.02)
+    elif classname.find('BatchNorm') != -1:
+        nn.init.normal_(m.weight.data, 1.0, 0.02)
+        nn.init.constant_(m.bias.data, 0)
+
+
+def show_random_images(dataloader):
+    """
+    Show a grid image with batch_size number of samples.
+    :param dataloader: torch.utils.data.DataLoader
+    :return:
+    """
+    dataiter = iter(dataloader)
+    images, labels = dataiter.next()  # We get batch_size number of images by calling .next()
+    img = torchvision.utils.make_grid(images)
+    npimg = img.numpy()
+    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+    plt.savefig("image.jpeg")
+    plt.show()
 
 
 def get_accuracy(output, labels):
@@ -134,6 +188,5 @@ def main():
     pred = np.eye(20)[np.random.choice(20, 1000)]
     labels = np.eye(20)[np.random.choice(20, 1000)]
     evaluate(pred, labels)
-
 
 # main()
