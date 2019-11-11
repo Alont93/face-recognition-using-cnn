@@ -208,8 +208,8 @@ if __name__ == '__main__':
     dataset_path = './datasets/cs154-fa19-public/' if LOCAL else '/datasets/cs154-fa19-public/'
 
     transform = transforms.Compose([transforms.Resize(224), transforms.CenterCrop(224), transforms.ToTensor()])
-    dataset = Loader('mini_train.csv', dataset_path, transform=transform)
-    test_dataset = Loader('mini_test.csv', dataset_path, transform=transform)
+    dataset = Loader('train.csv', dataset_path, transform=transform)
+    test_dataset = Loader('test.csv', dataset_path, transform=transform)
 
     # Train k models and keep the best
     best_model = train(dataset, NUM_CLASSES, epochs=EPOCHS, batch_size=BATCH_SIZE, k_folds=K)
