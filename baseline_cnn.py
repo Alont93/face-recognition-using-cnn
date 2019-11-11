@@ -65,7 +65,7 @@ class Nnet(nn.Module):
         )
 
         self.train_epoch_losses = []
-        self.validation_epoch_losses = []
+        self.val_epoch_losses = []
 
     def num_flat_features(self, inputs):
         # Get the dimensions of the layers excluding the inputs

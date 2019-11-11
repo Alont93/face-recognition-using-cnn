@@ -7,9 +7,8 @@ import torch.nn as nn
 import torch.nn.functional as func
 import torch.nn.init as torch_init
 import torch.optim as optim
-
-# Data utils and dataloader
 from torchvision import transforms
+import matplotlib.pyplot as plt
 
 # Custom utils file
 from utils import evaluate, weights_init, get_k_fold_indecies
@@ -140,9 +139,24 @@ def fit_model(computing_device, net, criterion, optimizer, train_loader, validat
 
             # Save this epochs validation loss
             val_epoch_loss = np.average(np.array(val_batch_losses))
-            net.validation_epoch_losses.append(val_epoch_loss)
+            net.val_epoch_losses.append(val_epoch_loss)
 
         print('Epoch %d Training loss: %.3f Validation loss: %.3f' % (epoch + 1, train_epoch_loss, val_epoch_loss))
+
+
+def plot_loss(net):
+    """
+    Plot training- and validation loss over epochs
+    :param net: nn.Module
+    :return:
+    """
+    plt.plot(net.train_epoch_losses, label="train loss")
+    plt.plot(net.val_epoch_losses, label="validation loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Cross Entropy Loss")
+    plt.title("Loss as a function of number of epochs")
+    plt.legend()
+    plt.show()
 
 
 def test(net, test_dataset):
@@ -162,7 +176,7 @@ if __name__ == '__main__':
     EPOCHS = 50
     BATCH_SIZE = 64
     NUM_CLASSES = 11
-    K = 3
+    K = 2
     LOCAL = True
 
     parser = argparse.ArgumentParser()
@@ -179,4 +193,5 @@ if __name__ == '__main__':
 
     # Train k models and keep the best
     best_model = train(dataset, epochs=EPOCHS, batch_size=BATCH_SIZE, k_folds=K)
+    plot_loss(best_model)
     test(best_model, test_dataset)
