@@ -1,5 +1,7 @@
 import argparse
 import logging
+import sys
+
 from baseline_cnn import *
 import torch
 from torch.autograd import Variable
@@ -15,7 +17,8 @@ import matplotlib.pyplot as plt
 # Custom utils file
 from utils import evaluate, weights_init, get_k_fold_indecies
 
-logging.basicConfig(filename='app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
 def check_cuda():
     # Check if your system supports CUDA
