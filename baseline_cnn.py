@@ -64,6 +64,9 @@ class Nnet(nn.Module):
             # nn.Softmax()
         )
 
+        self.train_epoch_losses = []
+        self.validation_epoch_losses = []
+
     def num_flat_features(self, inputs):
         # Get the dimensions of the layers excluding the inputs
         size = inputs.size()[1:]

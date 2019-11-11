@@ -1,4 +1,31 @@
 import numpy as np
+import torch.nn as nn
+import matplotlib.pyplot as plt
+import torchvision
+
+
+def weights_init(m):
+    classname = m.__class__.__name__
+    if classname.find('Conv') != -1:
+        nn.init.normal_(m.weight.data, 0.0, 0.02)
+    elif classname.find('BatchNorm') != -1:
+        nn.init.normal_(m.weight.data, 1.0, 0.02)
+        nn.init.constant_(m.bias.data, 0)
+
+
+def show_random_images(dataloader):
+    """
+    Show a grid image with batch_size number of samples.
+    :param dataloader: torch.utils.data.DataLoader
+    :return:
+    """
+    dataiter = iter(dataloader)
+    images, labels = dataiter.next()  # We get batch_size number of images by calling .next()
+    img = torchvision.utils.make_grid(images)
+    npimg = img.numpy()
+    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+    plt.savefig("image.jpeg")
+    plt.show()
 
 
 def get_accuracy(output, labels):
@@ -134,6 +161,5 @@ def main():
     pred = np.eye(20)[np.random.choice(20, 1000)]
     labels = np.eye(20)[np.random.choice(20, 1000)]
     evaluate(pred, labels)
-
 
 # main()
