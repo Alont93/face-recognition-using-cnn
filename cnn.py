@@ -17,8 +17,10 @@ import matplotlib.pyplot as plt
 # Custom utils file
 from utils import evaluate, weights_init, get_k_fold_indecies
 
-logging.basicConfig(filename='app.log', filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logging.basicConfig(filename='app.log', filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
+                    level=logging.INFO)
 logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
+
 
 def check_cuda():
     # Check if your system supports CUDA
@@ -36,7 +38,7 @@ def check_cuda():
     return computing_device, extras
 
 
-def train(dataset, weighted_loss=False, epochs=10, batch_size=64, k_folds=3):
+def train(dataset, num_classes, weighted_loss=False, epochs=10, batch_size=64, k_folds=3):
     computing_device, extra = check_cuda()
 
     # Save all the k models to compare
@@ -55,7 +57,7 @@ def train(dataset, weighted_loss=False, epochs=10, batch_size=64, k_folds=3):
         validation_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, sampler=valid_sampler)
 
         # Initialize CNN
-        net = Nnet(num_classes=NUM_CLASSES).to(computing_device)
+        net = Nnet(num_classes=num_classes).to(computing_device)
         net.apply(weights_init)
 
         # Initialize optimizer and criterion
@@ -96,6 +98,7 @@ def fit_model(computing_device, net, criterion, optimizer, train_loader, validat
         train_batch_losses = []
         val_batch_losses = []
         avg_minibatch_loss = []
+        logging.info("Started new epoch")
         # Get the next minibatch of images, labels for training
         for minibatch_count, (images, labels) in enumerate(train_loader, 0):
             fraction_done = round(minibatch_count / len(train_loader) * 100, 3)
@@ -120,12 +123,13 @@ def fit_model(computing_device, net, criterion, optimizer, train_loader, validat
             if minibatch_count % N == 49:
                 # Print the loss averaged over the last N mini-batches
                 N_minibatch_loss /= N
-                logging.info('Epoch %d, average minibatch %d loss: %.3f' % (epoch + 1, minibatch_count + 1, N_minibatch_loss))
+                logging.info(
+                    'Epoch %d, average minibatch %d loss: %.3f' % (epoch + 1, minibatch_count + 1, N_minibatch_loss))
                 # Add the averaged loss over N minibatches and reset the counter
                 avg_minibatch_loss.append(N_minibatch_loss)
                 N_minibatch_loss = 0.0
 
-        logging.info("Finished", epoch + 1, "epochs of training")
+        logging.info("Finished" + str(epoch + 1) + "epochs of training")
         logging.info("Saving model...")
         torch.save(net.state_dict(), save_path)
         logging.info("Done.")
@@ -143,13 +147,14 @@ def fit_model(computing_device, net, criterion, optimizer, train_loader, validat
                 outputs = net(images)
 
                 validation_batch_loss = criterion(outputs, labels)
-                val_batch_losses.append(validation_batch_loss)
+                val_batch_losses.append(validation_batch_loss.item())
 
             # Save this epochs validation loss
             val_epoch_loss = np.average(np.array(val_batch_losses))
             net.val_epoch_losses.append(val_epoch_loss)
 
-        logging.info('Epoch %d Training loss: %.3f Validation loss: %.3f' % (epoch + 1, train_epoch_loss, val_epoch_loss))
+        logging.info(
+            'Epoch %d Training loss: %.3f Validation loss: %.3f' % (epoch + 1, train_epoch_loss, val_epoch_loss))
 
 
 def plot_loss(net):
@@ -164,13 +169,15 @@ def plot_loss(net):
     plt.ylabel("Cross Entropy Loss")
     plt.title("Loss as a function of number of epochs")
     plt.legend()
-    plt.show()
+    plt.savefig('validation_plot.png')
 
 
 def test(net, test_dataset):
+    computing_device, extra = check_cuda()
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False)
     with torch.no_grad():
         for images, labels in test_loader:  # Remember they come in batches
+            images, labels = images.to(computing_device), labels.to(computing_device)
             # Since we are not doing this through criterion, we must add softmax our self
             outputs = func.softmax(net(images), dim=1)
             _, predicted = torch.max(outputs.data, 1)
@@ -185,7 +192,7 @@ if __name__ == '__main__':
     BATCH_SIZE = 64
     NUM_CLASSES = 201
     K = 2
-    LOCAL = True
+    LOCAL = False
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--local", "-l", help="If running locally or on ieng6")
@@ -198,14 +205,13 @@ if __name__ == '__main__':
     if args.epochs:
         EPOCHS = int(args.epochs)
 
-
     dataset_path = './datasets/cs154-fa19-public/' if LOCAL else '/datasets/cs154-fa19-public/'
 
     transform = transforms.Compose([transforms.Resize(224), transforms.CenterCrop(224), transforms.ToTensor()])
-    dataset = Loader('train.csv', dataset_path, transform=transform)
-    test_dataset = Loader('test.csv', dataset_path, transform=transform)
+    dataset = Loader('mini_train.csv', dataset_path, transform=transform)
+    test_dataset = Loader('mini_test.csv', dataset_path, transform=transform)
 
     # Train k models and keep the best
-    best_model = train(dataset, epochs=EPOCHS, batch_size=BATCH_SIZE, k_folds=K)
+    best_model = train(dataset, NUM_CLASSES, epochs=EPOCHS, batch_size=BATCH_SIZE, k_folds=K)
     plot_loss(best_model)
     test(best_model, test_dataset)
