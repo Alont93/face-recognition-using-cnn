@@ -10,7 +10,7 @@ import torch.optim as optim
 from torchvision import transforms
 
 # Custom utils file
-from utils import evaluate, weights_init
+from utils import evaluate, weights_init, get_k_fold_indecies
 
 
 def check_cuda():
@@ -29,29 +29,17 @@ def check_cuda():
     return computing_device, extras
 
 
-def rand_train_val_split(dataset, validation_split=0.2, shuffle_dataset=True, random_seed=42):
-    # Creating data indices for training and validation splits:
-    dataset_size = len(dataset)
-    indices = list(range(dataset_size))
-    split = int(np.floor(validation_split * dataset_size))
-    if shuffle_dataset:
-        np.random.seed(random_seed)
-        np.random.shuffle(indices)
-    train_indices, val_indices = indices[split:], indices[:split]
-    return train_indices, val_indices
-
-
-def train(dataset, weighted_loss=False, epochs=10, batch_size=64):
+def train(dataset, weighted_loss=False, epochs=10, batch_size=64, k_folds=3):
     computing_device, extra = check_cuda()
 
-    # TODO: Init k set of indecies instead of one
-    train_indecies, val_indecies = rand_train_val_split(dataset)
-    k_train_indecies = [train_indecies]
-    k_val_indecies = [val_indecies]
-    # TODO: For K in k-fold (Make lists of all the indecies before this loop)
+    # Save all the k models to compare
     nnets = []
-    for k, (train_indices, val_indices) in enumerate(zip(k_train_indecies, k_val_indecies)):
-        print("Training Model {}".format(k))
+
+    # Get a lists of train-val-split for k folds
+    k_folds_indecies = get_k_fold_indecies(dataset, k=k_folds)
+    for k, (train_indices, val_indices) in enumerate(k_folds_indecies):
+        print("#"*20 + "\n " + "Training Model {}".format(k))
+
         # Load data for this fold
         train_sampler = SubsetRandomSampler(train_indices)
         valid_sampler = SubsetRandomSampler(val_indices)
@@ -64,16 +52,18 @@ def train(dataset, weighted_loss=False, epochs=10, batch_size=64):
 
         # Initialize optimizer and criterion
         if weighted_loss:
-            criterion = criterion = nn.CrossEntropyLoss(weight=dataset.get_class_weights())
+            criterion = nn.CrossEntropyLoss(weight=dataset.get_class_weights())
         else:
             criterion = nn.CrossEntropyLoss()
         optimizer = optim.Adam(net.parameters(), lr=0.0001, weight_decay=0.0005)
 
+        # Fit and save model to file
         save_path = "./model{}.pth".format(k)
-        fit_model(computing_device, net, criterion, optimizer, train_loader, validation_loader, save_path=save_path)
+        fit_model(computing_device, net, criterion, optimizer, train_loader, validation_loader, epochs=epochs,
+                  save_path=save_path)
         nnets.append(net)
 
-    # TODO: Return the best model
+    # TODO: Compare models and return the best
     return nnets[0]
 
 
@@ -91,10 +81,7 @@ def fit_model(computing_device, net, criterion, optimizer, train_loader, validat
     :param save_path: string
     :return:
     """
-    # Initalize k models
-
     for epoch in range(epochs):
-
         N_minibatch_loss = 0.0
         N = 50
 
@@ -133,7 +120,6 @@ def fit_model(computing_device, net, criterion, optimizer, train_loader, validat
         print("Finished", epoch + 1, "epochs of training")
         print("Saving model...")
         torch.save(net.state_dict(), save_path)
-        print("Done.")
 
         # Save this epochs training loss
         train_epoch_loss = np.average(np.array(train_batch_losses))
@@ -171,13 +157,15 @@ def test(net, test_dataset):
 
 
 if __name__ == '__main__':
-    EPOCHS = 50
+    EPOCHS = 2
     BATCH_SIZE = 64
     NUM_CLASSES = 11
+    K = 3
 
     transform = transforms.Compose([transforms.Resize(224), transforms.CenterCrop(224), transforms.ToTensor()])
     dataset = loader('mini_train.csv', './datasets/cs154-fa19-public/', transform=transform)
     test_dataset = loader("mini_test.csv", './datasets/cs154-fa19-public/', transform=transform)
 
     # Train k models and keep the best
-    best_model = train(dataset)
+    best_model = train(dataset, epochs=EPOCHS, batch_size=BATCH_SIZE, k_folds=K)
+    test(best_model, test_dataset)
