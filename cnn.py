@@ -1,3 +1,6 @@
+import argparse
+import sys
+
 from baseline_cnn import *
 import torch
 from torch.autograd import Variable
@@ -174,10 +177,21 @@ if __name__ == '__main__':
     EPOCHS = 50
     BATCH_SIZE = 64
     NUM_CLASSES = 11
+    LOCAL = True
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--local", "-l", help="If running locally or on ieng6")
+    args = parser.parse_args()
+    if args.local:
+        LOCAL = bool(args.local)
 
     transform = transforms.Compose([transforms.Resize(224), transforms.CenterCrop(224), transforms.ToTensor()])
-    dataset = loader('mini_train.csv', './datasets/cs154-fa19-public/', transform=transform)
-    test_dataset = loader("mini_test.csv", './datasets/cs154-fa19-public/', transform=transform)
+
+    dataset_path = './datasets/cs154-fa19-public/' if LOCAL else '/datasets/cs154-fa19-public/'
+
+
+    dataset = Loader('mini_train.csv', dataset_path, transform=transform)
+    test_dataset = Loader("mini_test.csv", dataset_path, transform=transform)
 
     # Train k models and keep the best
     best_model = train(dataset)
