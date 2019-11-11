@@ -1,6 +1,5 @@
 import argparse
-import sys
-
+import logging
 from baseline_cnn import *
 import torch
 from torch.autograd import Variable
@@ -15,6 +14,7 @@ from torchvision import transforms
 # Custom utils file
 from utils import evaluate, weights_init
 
+logging.basicConfig(filename='app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
 
 def check_cuda():
     # Check if your system supports CUDA
@@ -24,11 +24,11 @@ def check_cuda():
     if use_cuda:
         computing_device = torch.device("cuda")
         extras = {"num_workers": 1, "pin_memory": True}
-        print("CUDA is supported")
+        logging.info("CUDA is supported")
     else:  # Otherwise, train on the CPU
         computing_device = torch.device("cpu")
         extras = False
-        print("CUDA NOT supported")
+        logging.info("CUDA NOT supported")
     return computing_device, extras
 
 
@@ -54,7 +54,7 @@ def train(dataset, weighted_loss=False, epochs=10, batch_size=64):
     # TODO: For K in k-fold (Make lists of all the indecies before this loop)
     nnets = []
     for k, (train_indices, val_indices) in enumerate(zip(k_train_indecies, k_val_indecies)):
-        print("Training Model {}".format(k))
+        logging.info("Training Model {}".format(k))
         # Load data for this fold
         train_sampler = SubsetRandomSampler(train_indices)
         valid_sampler = SubsetRandomSampler(val_indices)
@@ -128,15 +128,15 @@ def fit_model(computing_device, net, criterion, optimizer, train_loader, validat
             if minibatch_count % N == 49:
                 # Print the loss averaged over the last N mini-batches
                 N_minibatch_loss /= N
-                print('Epoch %d, average minibatch %d loss: %.3f' % (epoch + 1, minibatch_count + 1, N_minibatch_loss))
+                logging.info('Epoch %d, average minibatch %d loss: %.3f' % (epoch + 1, minibatch_count + 1, N_minibatch_loss))
                 # Add the averaged loss over N minibatches and reset the counter
                 avg_minibatch_loss.append(N_minibatch_loss)
                 N_minibatch_loss = 0.0
 
-        print("Finished", epoch + 1, "epochs of training")
-        print("Saving model...")
+        logging.info("Finished", epoch + 1, "epochs of training")
+        logging.info("Saving model...")
         torch.save(net.state_dict(), save_path)
-        print("Done.")
+        logging.info("Done.")
 
         # Save this epochs training loss
         train_epoch_loss = np.average(np.array(train_batch_losses))
@@ -157,7 +157,7 @@ def fit_model(computing_device, net, criterion, optimizer, train_loader, validat
             val_epoch_loss = np.average(np.array(val_batch_losses))
             net.validation_epoch_losses.append(val_epoch_loss)
 
-        print('Epoch %d Training loss: %.3f Validation loss: %.3f' % (epoch + 1, train_epoch_loss, val_epoch_loss))
+        logging.info('Epoch %d Training loss: %.3f Validation loss: %.3f' % (epoch + 1, train_epoch_loss, val_epoch_loss))
 
 
 def test(net, test_dataset):
@@ -174,7 +174,7 @@ def test(net, test_dataset):
 
 
 if __name__ == '__main__':
-    EPOCHS = 50
+    EPOCHS = 1
     BATCH_SIZE = 64
     NUM_CLASSES = 11
     LOCAL = True
