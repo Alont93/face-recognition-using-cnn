@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 # Custom utils file
 from utils import evaluate, weights_init, get_k_fold_indecies
 
-logging.basicConfig(filename='app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logging.basicConfig(filename='app.log', filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
 def check_cuda():
@@ -45,7 +45,8 @@ def train(dataset, weighted_loss=False, epochs=10, batch_size=64, k_folds=3):
     # Get a lists of train-val-split for k folds
     k_folds_indecies = get_k_fold_indecies(dataset, k=k_folds)
     for k, (train_indices, val_indices) in enumerate(k_folds_indecies):
-        logging.info("#" * 20 + "\n " + "Training Model {}".format(k))
+        logging.info("#" * 20)
+        logging.info("Training Model {}".format(k))
 
         # Load data for this fold
         train_sampler = SubsetRandomSampler(train_indices)
@@ -180,23 +181,29 @@ def test(net, test_dataset):
 
 
 if __name__ == '__main__':
-    EPOCHS = 1
+    EPOCHS = 50
     BATCH_SIZE = 64
-    NUM_CLASSES = 11
+    NUM_CLASSES = 201
     K = 2
     LOCAL = True
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--local", "-l", help="If running locally or on ieng6")
+    parser.add_argument("--epochs", "-e", help="Number of epochs")
+
     args = parser.parse_args()
     if args.local:
         LOCAL = bool(args.local)
 
+    if args.epochs:
+        EPOCHS = int(args.epochs)
+
+
     dataset_path = './datasets/cs154-fa19-public/' if LOCAL else '/datasets/cs154-fa19-public/'
 
     transform = transforms.Compose([transforms.Resize(224), transforms.CenterCrop(224), transforms.ToTensor()])
-    dataset = Loader('mini_train.csv', dataset_path, transform=transform)
-    test_dataset = Loader("mini_test.csv", dataset_path, transform=transform)
+    dataset = Loader('train.csv', dataset_path, transform=transform)
+    test_dataset = Loader('test.csv', dataset_path, transform=transform)
 
     # Train k models and keep the best
     best_model = train(dataset, epochs=EPOCHS, batch_size=BATCH_SIZE, k_folds=K)
