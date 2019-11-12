@@ -73,10 +73,10 @@ def train(dataset, weighted_loss=False):
     else:
         indices = list(range(len(dataset)))
         validation_split = .2
-        split = int(np.floor(validation_split * len(dataset)))
-        train_indices, val_indices = indices[split:], indices[:split]
         np.random.seed(settings['RANDOM_SEED'])
         np.random.shuffle(indices)
+        split = int(np.floor(validation_split * len(dataset)))
+        train_indices, val_indices = indices[split:], indices[:split]
         indices = [(train_indices, val_indices)]
 
     for k, (train_indices, val_indices) in enumerate(indices):
@@ -252,7 +252,7 @@ if __name__ == '__main__':
         settings['DATA_PATHS']['TEST_CSV'] = "mini_test.csv"
 
     # Load and transform data
-    transform = get_transformers()["alon"]
+    transform = get_transformers()["default"]
     dataset = Loader(settings['DATA_PATHS']['TRAIN_CSV'], settings['DATA_PATHS']['DATASET_PATH'], transform=transform)
     test_dataset = Loader(settings['DATA_PATHS']['TEST_CSV'], settings['DATA_PATHS']['DATASET_PATH'],
                           transform=transform)
