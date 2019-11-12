@@ -41,9 +41,10 @@ def get_current_time():
     return datetime.now().strftime("%m.%d.%Y %H:%M:%S")
 
 
-def get_k_fold_indecies(dataset, k=3):
+def get_k_fold_indecies(dataset, random_seed, k=3):
     """
     Return k train-validation splits
+    :param random_seed: seed
     :param dataset: Dataset
     :param k: int
     :return:
@@ -51,7 +52,7 @@ def get_k_fold_indecies(dataset, k=3):
     dataset_size = len(dataset)
     indices = list(range(dataset_size))
     np.random.shuffle(indices)
-    kf = KFold(n_splits=k, shuffle=True, random_state=42)
+    kf = KFold(n_splits=k, shuffle=True, random_state=random_seed)
     return kf.split(indices)
 
 

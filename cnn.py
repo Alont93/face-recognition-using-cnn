@@ -28,6 +28,8 @@ settings = {
     'EPOCHS': 50,
     'BATCH_SIZE': 64,
     'NUM_CLASSES': 201,
+    'RANDOM_SEED': 42,
+    'K-FOLD': False,
     'K-FOLD-NUMBER': 2,
     'NNET': AlexNet,
     'DATA_PATHS': {
@@ -65,8 +67,19 @@ def train(dataset, weighted_loss=False):
     nnets = []
     batch_size = settings['BATCH_SIZE']
     # Get a lists of train-val-split for k folds
-    k_folds_indecies = get_k_fold_indecies(dataset, settings['K-FOLD-NUMBER'])
-    for k, (train_indices, val_indices) in enumerate(k_folds_indecies):
+
+    if settings['K-FOLD']:
+        indices = get_k_fold_indecies(dataset, settings['RANDOM_SEED'], k=settings['K-FOLD-NUMBER'])
+    else:
+        indices = list(range(len(dataset)))
+        validation_split = .2
+        split = int(np.floor(validation_split * len(dataset)))
+        train_indices, val_indices = indices[split:], indices[:split]
+        np.random.seed(settings['RANDOM_SEED'])
+        np.random.shuffle(indices)
+        indices = [(train_indices, val_indices)]
+
+    for k, (train_indices, val_indices) in enumerate(indices):
         logging.info("#" * 20)
         logging.info("Training Model {}".format(k))
 
@@ -88,7 +101,11 @@ def train(dataset, weighted_loss=False):
         optimizer = optim.Adam(net.parameters(), lr=0.0001, weight_decay=0.0005)
 
         # Fit and save model to file
-        save_path = "./{}_model{}_{}.pth".format(str(net), k, get_current_time())
+        if settings['K-FOLD']:
+            save_path = "./{}_model{}_{}.pth".format(str(net), k, get_current_time())
+        else:
+            save_path = "./{}_model_{}.pth".format(str(net), get_current_time())
+
         fit_model(computing_device, net, criterion, optimizer, train_loader, validation_loader,
                   save_path=save_path)
         nnets.append(net)
@@ -215,15 +232,18 @@ def test(net, test_dataset):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--server", "-s", help="If running on server", type=bool, default=False)
-    parser.add_argument("--epochs", "-e", help="Number of epochs", type=int, default=1)
-    parser.add_argument("--mini", "-m", help="Do you want to run with only 10 classes?", type=bool, default=True)
+    parser.add_argument("--epochs", "-e", help="Number of epochs", type=int)
+    parser.add_argument("--mini", "-m", help="Do you want to run with only 10 classes?", type=bool, default=False)
     parser.add_argument("--net", "-n", help="AlexNet | Nnet | TransferNet", default="Nnet")
+    parser.add_argument("--kfold", "-k", help="Enable K-fold cross validation", default=False)
 
     args = parser.parse_args()
     if args.server:
         settings['DATA_PATHS']['DATASET_PATH'] = '/datasets/cs154-fa19-public/'
     if args.net:
         settings['NNET'] = NETS[args.net]
+    if args.net:
+        settings['K-FOLD'] = bool(args.kfold)
     if args.epochs:
         settings['EPOCHS'] = args.epochs
     if args.mini:
