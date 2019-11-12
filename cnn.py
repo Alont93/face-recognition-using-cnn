@@ -86,9 +86,9 @@ def train(dataset, weighted_loss=False):
         else:
             criterion = nn.CrossEntropyLoss()
         if str(net) == "TransferNet":
-            optimizer = optim.Adam(net.main.classifier.parameters())
+            optimizer = optim.Adam(net.main.classifier.parameters(), weight_decay=0.005)
         else:
-            optimizer = optim.Adam(net.parameters())
+            optimizer = optim.Adam(net.parameters(), weight_decay=0.005)
 
         # Fit and save model to file
         save_path = "./{}_model{}.pth".format(str(net), k)
