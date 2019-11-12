@@ -98,7 +98,10 @@ def train(dataset, weighted_loss=False):
             criterion = nn.CrossEntropyLoss(weight=dataset.get_class_weights())
         else:
             criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(net.parameters(), lr=0.0001, weight_decay=0.0005)
+        if str(net) == "TransferNet":
+            optimizer = optim.Adam(net.main.classifier.parameters(), weight_decay=0.005)
+        else:
+            optimizer = optim.Adam(net.parameters(), weight_decay=0.005)
 
         # Fit and save model to file
         if settings['K-FOLD']:
