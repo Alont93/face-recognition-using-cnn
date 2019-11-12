@@ -235,7 +235,7 @@ if __name__ == '__main__':
         settings['DATA_PATHS']['TEST_CSV'] = "mini_test.csv"
 
     # Load and transform data
-    transform = get_transformers()["alon"]
+    transform = get_transformers()["default"]
     dataset = Loader(settings['DATA_PATHS']['TRAIN_CSV'], settings['DATA_PATHS']['DATASET_PATH'], transform=transform)
     test_dataset = Loader(settings['DATA_PATHS']['TEST_CSV'], settings['DATA_PATHS']['DATASET_PATH'],
                           transform=transform)

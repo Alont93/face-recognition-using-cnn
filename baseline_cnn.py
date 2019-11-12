@@ -145,13 +145,9 @@ class TransferNet(nn.Module):
         # Parameters of newly constructed modules have requires_grad=True by default
         num_ftrs = self.main.classifier[0].in_features
         self.main.classifier = nn.Sequential(
-            nn.Linear(num_ftrs, 4096, bias=True),
+            nn.Linear(num_ftrs, 300, bias=True),
             nn.ReLU(inplace=True),
-            nn.Dropout(0.5),
-            nn.Linear(4096, 4096, bias=True),
-            nn.ReLU(inplace=True),
-            nn.Dropout(0.5),
-            nn.Linear(4096, num_classes, bias=True),
+            nn.Linear(300, 201, bias=True)
         )
         self.train_epoch_losses = []
         self.val_epoch_losses = []
