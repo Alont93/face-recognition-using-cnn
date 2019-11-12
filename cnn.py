@@ -204,6 +204,7 @@ def test(net, test_dataset):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument("--net", "-n", help="Select neural network", type=bool)
     parser.add_argument("--server", "-s", help="If running on server", type=bool, default=False)
     parser.add_argument("--epochs", "-e", help="Number of epochs", type=int, default=50)
     parser.add_argument("--mini", "-m", help="Do you want to run with only 10 classes?", type=bool, default=False)
