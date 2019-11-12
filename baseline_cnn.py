@@ -85,7 +85,7 @@ class Nnet(nn.Module):
 
 
 class AlexNet(nn.Module):
-    def __init__(self):
+    def __init__(self, num_classes=201):
         super(AlexNet, self).__init__()
         # ALEX NET
         self.main = nn.Sequential(
@@ -113,7 +113,7 @@ class AlexNet(nn.Module):
             nn.Dropout(),
             nn.Linear(4096, 4096),
             nn.ReLU(inplace=True),
-            nn.Linear(4096, 201),
+            nn.Linear(4096, num_classes),
         )
 
     def forward(self, x):

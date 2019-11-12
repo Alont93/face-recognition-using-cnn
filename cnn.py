@@ -4,24 +4,26 @@ import sys
 
 from baseline_cnn import *
 import torch
-from torch.autograd import Variable
 import torch.nn as nn
 import torch.nn.functional as func
-import torch.nn.init as torch_init
 import torch.optim as optim
 
-# Data utils and dataloader
-from torchvision import transforms
 import matplotlib.pyplot as plt
 
 # Custom utils file
 from utils import evaluate, weights_init, get_k_fold_indecies, get_transformer
 
+NETS = {
+    "AlexNet": AlexNet,
+    "Nnet": Nnet,
+    "TransferNet": TransferNet
+}
 settings = {
     'EPOCHS': 50,
     'BATCH_SIZE': 64,
     'NUM_CLASSES': 201,
     'K-FOLD-NUMBER': 2,
+    'NNET': AlexNet,
     'DATA_PATHS': {
         'TRAIN_CSV': 'train.csv',
         'TEST_CSV': 'test.csv',
@@ -50,14 +52,14 @@ def check_cuda():
     return computing_device, extras
 
 
-def train(dataset, num_classes, weighted_loss=False, epochs=10, batch_size=64, k_folds=3):
+def train(dataset, weighted_loss=False):
     computing_device, extra = check_cuda()
 
     # Save all the k models to compare
     nnets = []
-
+    batch_size = settings['BATCH_SIZE']
     # Get a lists of train-val-split for k folds
-    k_folds_indecies = get_k_fold_indecies(dataset, k=k_folds)
+    k_folds_indecies = get_k_fold_indecies(dataset, settings['K-FOLD-NUMBER'])
     for k, (train_indices, val_indices) in enumerate(k_folds_indecies):
         logging.info("#" * 20)
         logging.info("Training Model {}".format(k))
@@ -69,7 +71,7 @@ def train(dataset, num_classes, weighted_loss=False, epochs=10, batch_size=64, k
         validation_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, sampler=valid_sampler)
 
         # Initialize CNN
-        net = Nnet(num_classes=num_classes).to(computing_device)
+        net = settings['NNET'](settings['NUM_CLASSES']).to(computing_device)
         net.apply(weights_init)
 
         # Initialize optimizer and criterion
@@ -81,7 +83,7 @@ def train(dataset, num_classes, weighted_loss=False, epochs=10, batch_size=64, k
 
         # Fit and save model to file
         save_path = "./model{}.pth".format(k)
-        fit_model(computing_device, net, criterion, optimizer, train_loader, validation_loader, epochs=epochs,
+        fit_model(computing_device, net, criterion, optimizer, train_loader, validation_loader,
                   save_path=save_path)
         nnets.append(net)
 
@@ -89,7 +91,7 @@ def train(dataset, num_classes, weighted_loss=False, epochs=10, batch_size=64, k
     return nnets[0]
 
 
-def fit_model(computing_device, net, criterion, optimizer, train_loader, validation_loader, epochs=50,
+def fit_model(computing_device, net, criterion, optimizer, train_loader, validation_loader,
               save_path="./model.pth."):
     """
     Fit the model over a given number of epochs, while saving all loss data in the model itself.
@@ -99,11 +101,10 @@ def fit_model(computing_device, net, criterion, optimizer, train_loader, validat
     :param optimizer: torch.optim
     :param train_loader: torch.utils.data.DataLoader
     :param validation_loader: torch.utils.data.DataLoader
-    :param epochs: int
     :param save_path: string
     :return:
     """
-    for epoch in range(epochs):
+    for epoch in range(settings['EPOCHS']):
         N_minibatch_loss = 0.0
         N = 50
 
@@ -194,8 +195,8 @@ def test(net, test_dataset):
             outputs = func.softmax(net(images), dim=1)
             _, predicted = torch.max(outputs.data, 1)
 
-            predicted = func.one_hot(predicted, num_classes=NUM_CLASSES).type(torch.FloatTensor)
-            labels = func.one_hot(labels, num_classes=NUM_CLASSES).type(torch.FloatTensor)
+            predicted = func.one_hot(predicted, num_classes=settings['NUM_CLASSES']).type(torch.FloatTensor)
+            labels = func.one_hot(labels, num_classes=settings['NUM_CLASSES']).type(torch.FloatTensor)
             evaluate(predicted, labels)
 
 
@@ -210,6 +211,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.server:
         settings['DATA_PATHS']['DATASET_PATH'] = '/datasets/cs154-fa19-public/'
+
+    if args.net:
+        settings['NNET'] = NETS[args.net]
     if args.epochs:
         settings['EPOCHS'] = args.epochs
     if args.mini:
@@ -223,7 +227,6 @@ if __name__ == '__main__':
     test_dataset = Loader(settings['DATA_PATHS']['TEST_CSV'], settings['DATA_PATHS']['DATASET_PATH'], transform=transform)
 
     # Train k models and keep the best
-    best_model = train(dataset, settings['NUM_CLASSES'], epochs=settings['EPOCHS'], batch_size=settings['BATCH_SIZE'],
-                       k_folds=settings['K-FOLD-NUMBER'])
+    best_model = train(dataset)
     plot_loss(best_model)
     test(best_model, test_dataset)
