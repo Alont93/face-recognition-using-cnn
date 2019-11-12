@@ -29,7 +29,7 @@ settings = {
     'BATCH_SIZE': 64,
     'NUM_CLASSES': 201,
     'RANDOM_SEED': 42,
-    'K-FOLD': False,
+    'K-FOLD': True,
     'K-FOLD-NUMBER': 2,
     'NNET': AlexNet,
     'DATA_PATHS': {
@@ -74,9 +74,9 @@ def train(dataset, weighted_loss=False):
         indices = list(range(len(dataset)))
         validation_split = .2
         split = int(np.floor(validation_split * len(dataset)))
-        train_indices, val_indices = indices[split:], indices[:split]
         np.random.seed(settings['RANDOM_SEED'])
         np.random.shuffle(indices)
+        train_indices, val_indices = indices[split:], indices[:split]
         indices = [(train_indices, val_indices)]
 
     for k, (train_indices, val_indices) in enumerate(indices):
@@ -98,7 +98,7 @@ def train(dataset, weighted_loss=False):
             criterion = nn.CrossEntropyLoss(weight=dataset.get_class_weights())
         else:
             criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(net.parameters(), lr=0.0001, weight_decay=0.0005)
+        optimizer = optim.Adam(net.parameters(), lr=0.0001, weight_decay=0)
 
         # Fit and save model to file
         if settings['K-FOLD']:
@@ -234,7 +234,7 @@ if __name__ == '__main__':
     parser.add_argument("--server", "-s", help="If running on server", type=bool, default=False)
     parser.add_argument("--epochs", "-e", help="Number of epochs", type=int)
     parser.add_argument("--mini", "-m", help="Do you want to run with only 10 classes?", type=bool, default=False)
-    parser.add_argument("--net", "-n", help="AlexNet | Nnet | TransferNet", default="Nnet")
+    parser.add_argument("--net", "-n", help="AlexNet | Nnet | TransferNet", default="AlexNet")
     parser.add_argument("--kfold", "-k", help="Enable K-fold cross validation", default=False)
 
     args = parser.parse_args()
