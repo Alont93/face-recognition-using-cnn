@@ -135,7 +135,7 @@ class AlexNet(nn.Module):
 class TransferNet(nn.Module):
     def __init__(self, num_classes=201):
         super(TransferNet, self).__init__()
-        self.main = models.vgg16(pretrained=True)
+        self.main = models.vgg11(pretrained=True)
 
         # Freeze parameters, so gradient not computed here
         for param in self.main.parameters():
@@ -146,7 +146,7 @@ class TransferNet(nn.Module):
         self.main.classifier = nn.Sequential(
             nn.Linear(num_ftrs, 300, bias=True),
             nn.ReLU(inplace=True),
-            nn.Linear(300, 201, bias=True)
+            nn.Linear(300, num_classes, bias=True)
         )
         self.train_epoch_losses = []
         self.val_epoch_losses = []
