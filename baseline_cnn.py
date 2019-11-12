@@ -89,7 +89,6 @@ class Nnet(nn.Module):
 class AlexNet(nn.Module):
     def __init__(self, num_classes=201):
         super(AlexNet, self).__init__()
-        # ALEX NET
         self.main = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=11, stride=4, padding=2),
             nn.ReLU(inplace=True),
@@ -137,9 +136,14 @@ class AlexNet(nn.Module):
 class TransferNet(nn.Module):
     def __init__(self, num_classes=201):
         super(TransferNet, self).__init__()
-        self.main = nn.Sequential(models.vgg16(pretrained=True))
+        self.vgg16 = models.vgg16(pretrained=True)
+
+        # Freeze parameters, so gradient not computed here
+        for param in self.vgg16.parameters():
+            param.requires_grad = False
+
         self.fc = nn.Sequential(
-            nn.Linear(1000, 300),
+            nn.Linear(25088, 300),
             nn.ReLU(inplace=True),
             nn.Linear(300, num_classes)
         )
@@ -148,7 +152,8 @@ class TransferNet(nn.Module):
         self.val_epoch_losses = []
 
     def forward(self, input):
-        x = self.main(input)
+        x = self.vgg16.features(input)
+        x = self.vgg16.avgpool(x)
         x = x.view(-1, num_flat_features(x))
         return self.fc(x)
 
