@@ -136,14 +136,16 @@ class AlexNet(nn.Module):
 class TransferNet(nn.Module):
     def __init__(self, num_classes=201):
         super(TransferNet, self).__init__()
-        self.vgg16 = models.vgg16(pretrained=True)
+        self.main = models.vgg16(pretrained=True)
 
         # Freeze parameters, so gradient not computed here
-        for param in self.vgg16.parameters():
+        for param in self.main.parameters():
             param.requires_grad = False
 
-        self.fc = nn.Sequential(
-            nn.Linear(25088, 4096, bias=True),
+        # Parameters of newly constructed modules have requires_grad=True by default
+        num_ftrs = self.main.classifier[0].in_features
+        self.main.classifier = nn.Sequential(
+            nn.Linear(num_ftrs, 4096, bias=True),
             nn.ReLU(inplace=True),
             nn.Dropout(0.5),
             nn.Linear(4096, 4096, bias=True),
@@ -151,18 +153,18 @@ class TransferNet(nn.Module):
             nn.Dropout(0.5),
             nn.Linear(4096, num_classes, bias=True),
         )
-
         self.train_epoch_losses = []
         self.val_epoch_losses = []
 
     def forward(self, input):
-        x = self.vgg16.features(input)
-        x = self.vgg16.avgpool(x)
+        x = self.main.features(input)
+        x = self.main.avgpool(x)
         x = x.view(-1, num_flat_features(x))
-        return self.fc(x)
+        return self.main.classifier(x)
 
     def __str__(self):
         return "TransferNet"
 
     def __repr__(self):
         return "TransferNet"
+

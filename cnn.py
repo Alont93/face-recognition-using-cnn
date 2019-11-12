@@ -86,7 +86,7 @@ def train(dataset, weighted_loss=False):
         else:
             criterion = nn.CrossEntropyLoss()
         if str(net) == "TransferNet":
-            optimizer = optim.Adam(net.fc.parameters())
+            optimizer = optim.Adam(net.main.classifier.parameters())
         else:
             optimizer = optim.Adam(net.parameters())
 
