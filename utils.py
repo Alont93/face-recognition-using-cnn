@@ -219,6 +219,30 @@ def evaluate(output, labels, net, settings):
     result_file.close()
 
 
+def plot_weights(model, layer):
+    COLUMNS_IN_FIGURE = 10
+    weights = model.main._modules.get(str(layer)).weight.data.numpy()
+
+    # normalize weights
+    mean = np.mean(weights, axis=(1, 2), keepdims=True)
+    std = np.std(weights, axis=(1, 2), keepdims=True)
+    normalized_weighs = (weights - mean) / std
+
+    if not weights.shape[-1] == 3:
+        raise Exception("last dim needs to be 3")
+    num_weights = normalized_weighs.shape[0]
+    num_rows = 1 + num_weights // COLUMNS_IN_FIGURE
+    fig = plt.figure(figsize=(COLUMNS_IN_FIGURE, num_rows))
+    for i in range(normalized_weighs.shape[0]):
+        sub = fig.add_subplot(num_rows, COLUMNS_IN_FIGURE, i + 1)
+        sub.axis('off')
+        sub.imshow(normalized_weighs[i])
+        sub.set_xticklabels([])
+        sub.set_yticklabels([])
+
+    plt.show()
+
+
 def main():
     pred = np.eye(20)[np.random.choice(20, 1000)]
     labels = np.eye(20)[np.random.choice(20, 1000)]
