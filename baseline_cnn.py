@@ -1,13 +1,20 @@
-from torchvision import transforms
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from PIL import Image
-from torch.utils.data.sampler import SubsetRandomSampler
 import torchvision.models as models
-import numpy as np
 import torch
 import torch.nn as nn
 import pandas as pd
 import os
+
+
+def num_flat_features(inputs):
+    # Get the dimensions of the layers excluding the inputs
+    size = inputs.size()[1:]
+    # Track the number of features
+    num_features = 1
+    for s in size:
+        num_features *= s
+    return num_features
 
 
 class Loader(Dataset):
@@ -67,21 +74,16 @@ class Nnet(nn.Module):
         self.train_epoch_losses = []
         self.val_epoch_losses = []
 
-    def num_flat_features(self, inputs):
-        # Get the dimensions of the layers excluding the inputs
-        size = inputs.size()[1:]
-        # Track the number of features
-        num_features = 1
-
-        for s in size:
-            num_features *= s
-
-        return num_features
-
     def forward(self, input):
         x = self.main(input)
-        x = x.view(-1, self.num_flat_features(x))
+        x = x.view(-1, num_flat_features(x))
         return self.fc(x)
+
+    def __str__(self):
+        return "Nnet"
+
+    def __repr__(self):
+        return "Nnet"
 
 
 class AlexNet(nn.Module):
@@ -115,6 +117,8 @@ class AlexNet(nn.Module):
             nn.ReLU(inplace=True),
             nn.Linear(4096, num_classes),
         )
+        self.train_epoch_losses = []
+        self.val_epoch_losses = []
 
     def forward(self, x):
         x = self.main(x)
@@ -122,6 +126,13 @@ class AlexNet(nn.Module):
         x = torch.flatten(x, 1)
         x = self.classifier(x)
         return x
+
+    def __str__(self):
+        return "AlexNet"
+
+    def __repr__(self):
+        return "AlexNet"
+
 
 class TransferNet(nn.Module):
     def __init__(self, num_classes=201):
@@ -136,18 +147,13 @@ class TransferNet(nn.Module):
         self.train_epoch_losses = []
         self.val_epoch_losses = []
 
-    def num_flat_features(self, inputs):
-        # Get the dimensions of the layers excluding the inputs
-        size = inputs.size()[1:]
-        # Track the number of features
-        num_features = 1
-
-        for s in size:
-            num_features *= s
-
-        return num_features
-
     def forward(self, input):
         x = self.main(input)
-        x = x.view(-1, self.num_flat_features(x))
+        x = x.view(-1, num_flat_features(x))
         return self.fc(x)
+
+    def __str__(self):
+        return "TransferNet"
+
+    def __repr__(self):
+        return "TransferNet"
