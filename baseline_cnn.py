@@ -143,9 +143,13 @@ class TransferNet(nn.Module):
             param.requires_grad = False
 
         self.fc = nn.Sequential(
-            nn.Linear(25088, 300),
+            nn.Linear(25088, 4096, bias=True),
             nn.ReLU(inplace=True),
-            nn.Linear(300, num_classes)
+            nn.Dropout(0.5),
+            nn.Linear(4096, 4096, bias=True),
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.5),
+            nn.Linear(4096, num_classes, bias=True),
         )
 
         self.train_epoch_losses = []
