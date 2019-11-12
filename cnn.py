@@ -1,17 +1,23 @@
+# Logging
 import argparse
 import logging
 import sys
 
-from baseline_cnn import *
+# Pytorch
 import torch
 import torch.nn as nn
 import torch.nn.functional as func
 import torch.optim as optim
+from torch.utils.data import DataLoader
+from torch.utils.data.sampler import SubsetRandomSampler
 
+# Basics
 import matplotlib.pyplot as plt
+import numpy as np
 
-# Custom utils file
-from utils import evaluate, weights_init, get_k_fold_indecies, get_transformer
+# Custom files
+from baseline_cnn import AlexNet, Nnet, TransferNet, Loader
+from utils import evaluate, weights_init, get_k_fold_indecies, get_transformers
 
 NETS = {
     "AlexNet": AlexNet,
@@ -67,8 +73,8 @@ def train(dataset, weighted_loss=False):
         # Load data for this fold
         train_sampler = SubsetRandomSampler(train_indices)
         valid_sampler = SubsetRandomSampler(val_indices)
-        train_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, sampler=train_sampler)
-        validation_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, sampler=valid_sampler)
+        train_loader = DataLoader(dataset, batch_size=batch_size, sampler=train_sampler)
+        validation_loader = DataLoader(dataset, batch_size=batch_size, sampler=valid_sampler)
 
         # Initialize CNN
         net = settings['NNET'](settings['NUM_CLASSES']).to(computing_device)
@@ -82,7 +88,7 @@ def train(dataset, weighted_loss=False):
         optimizer = optim.Adam(net.parameters(), lr=0.0001, weight_decay=0.0005)
 
         # Fit and save model to file
-        save_path = "./model{}.pth".format(k)
+        save_path = "./{}_model{}.pth".format(str(net), k)
         fit_model(computing_device, net, criterion, optimizer, train_loader, validation_loader,
                   save_path=save_path)
         nnets.append(net)
@@ -99,8 +105,8 @@ def fit_model(computing_device, net, criterion, optimizer, train_loader, validat
     :param net: nn.Module
     :param criterion: torch.nn
     :param optimizer: torch.optim
-    :param train_loader: torch.utils.data.DataLoader
-    :param validation_loader: torch.utils.data.DataLoader
+    :param train_loader: DataLoader
+    :param validation_loader: DataLoader
     :param save_path: string
     :return:
     """
@@ -186,8 +192,14 @@ def plot_loss(net):
 
 
 def test(net, test_dataset):
+    """
+    Test the model on test data, and print statistics
+    :param net: nn.Module
+    :param test_dataset: torch.utils.data.Dataset
+    :return:
+    """
     computing_device, extra = check_cuda()
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False)
     with torch.no_grad():
         for images, labels in test_loader:  # Remember they come in batches
             images, labels = images.to(computing_device), labels.to(computing_device)
@@ -197,9 +209,7 @@ def test(net, test_dataset):
 
             predicted = func.one_hot(predicted, num_classes=settings['NUM_CLASSES']).type(torch.FloatTensor)
             labels = func.one_hot(labels, num_classes=settings['NUM_CLASSES']).type(torch.FloatTensor)
-            evaluate(predicted, labels)
-
-
+            evaluate(predicted, labels, net, settings)
 
 
 if __name__ == '__main__':
@@ -208,11 +218,11 @@ if __name__ == '__main__':
     parser.add_argument("--server", "-s", help="If running on server", type=bool, default=False)
     parser.add_argument("--epochs", "-e", help="Number of epochs", type=int, default=50)
     parser.add_argument("--mini", "-m", help="Do you want to run with only 10 classes?", type=bool, default=False)
+    parser.add_argument("--net", "-n", help="AlexNet | Nnet | TransferNet", default="Nnet")
 
     args = parser.parse_args()
     if args.server:
         settings['DATA_PATHS']['DATASET_PATH'] = '/datasets/cs154-fa19-public/'
-
     if args.net:
         settings['NNET'] = NETS[args.net]
     if args.epochs:
@@ -223,11 +233,13 @@ if __name__ == '__main__':
         settings['DATA_PATHS']['TEST_CSV'] = "mini_test.csv"
 
     # Load and transform data
-    transform = get_transformer(alon=True)
+    transform = get_transformers()["alon"]
     dataset = Loader(settings['DATA_PATHS']['TRAIN_CSV'], settings['DATA_PATHS']['DATASET_PATH'], transform=transform)
-    test_dataset = Loader(settings['DATA_PATHS']['TEST_CSV'], settings['DATA_PATHS']['DATASET_PATH'], transform=transform)
+    test_dataset = Loader(settings['DATA_PATHS']['TEST_CSV'], settings['DATA_PATHS']['DATASET_PATH'],
+                          transform=transform)
 
     # Train k models and keep the best
+    logging.info("Settings: {}".format(str(settings)))
     best_model = train(dataset)
     plot_loss(best_model)
     test(best_model, test_dataset)

@@ -4,21 +4,23 @@ import matplotlib.pyplot as plt
 import torchvision
 from sklearn.model_selection import KFold
 from torchvision import transforms
+import csv
 
 
-def get_transformer(alon=True):
-    if alon:
-        MAX_ANGLE_TO_ROTATE = 30
-        DATASET_MEANS = [0.44853166, 0.36957467, 0.3424105]
-        DATASET_STD = [0.3184785, 0.28314784, 0.27949163]
-        return transforms.Compose([transforms.Resize(224),
-                                   transforms.CenterCrop(224),
-                                   transforms.RandomRotation(MAX_ANGLE_TO_ROTATE),
-                                   transforms.ToTensor(),
-                                   transforms.Normalize(mean=DATASET_MEANS, std=DATASET_STD)])
-    else:
-        # Default
-        return transforms.Compose([transforms.Resize(224), transforms.CenterCrop(224), transforms.ToTensor()])
+def get_transformers():
+    max_angle_to_rotate = 30
+    dataset_means = [0.44853166, 0.36957467, 0.3424105]
+    dataset_std = [0.3184785, 0.28314784, 0.27949163]
+    transformers = {"alon": transforms.Compose([transforms.Resize(224),
+                                                transforms.CenterCrop(224),
+                                                transforms.RandomRotation(max_angle_to_rotate),
+                                                transforms.ToTensor(),
+                                                transforms.Normalize(mean=dataset_means, std=dataset_std)]),
+                    "default": transforms.Compose([transforms.Resize(224),
+                                                   transforms.CenterCrop(224),
+                                                   transforms.ToTensor()])
+                    }
+    return transformers
 
 
 def rand_train_val_split(dataset, validation_split=0.2, shuffle_dataset=True, random_seed=42):
@@ -175,13 +177,14 @@ def get_aggregated_score(output, labels):
     return aggregated_scores
 
 
-def evaluate(output, labels):
+def evaluate(output, labels, net, settings):
     """
     Print the overall score of the predictions done by the network
     :param output: Predictions from the network
     :param labels: Labels for the input to the network
     :return:
     """
+    headers = ["Class", "Accuracy", "Precision", "Recall", "BCR", "AggregatedScore"]
     # True positives, false positives, etc.
     truth_per_class = get_truth(output, labels)
     evaluate_per_class = []
@@ -194,13 +197,19 @@ def evaluate(output, labels):
         aggregated_score = (accuracy + precision + recall + bcr) / 4
         evaluate_per_class.append((c, accuracy, precision, recall, bcr, aggregated_score))
 
+    # Save to file as well as print to console
+    result_file = open("{}_test_results.csv".format(str(net)), mode="w")
+    csv_writer = csv.writer(result_file, delimiter=',')
+    csv_writer.writerow([str(settings)])
+    csv_writer.writerow(headers)
     dash = "-" * 65
     print(dash)
-    print('{:<10s}{:<10s}{:<10s}{:<10s}{:<10s}{:<10s}'.format("Class", "Accuracy", "Precision", "Recall", "BCR",
-                                                              "AggregatedScore"))
+    print('{:<10s}{:<10s}{:<10s}{:<10s}{:<10s}{:<10s}'.format(*headers))
     print(dash)
     for class_eval in evaluate_per_class:
+        csv_writer.writerow([round(num, ndigits=3) for num in class_eval])
         print('{:<10d}{:<10.3f}{:<10.3f}{:<10.3f}{:<10.3f}{:<10.3f}'.format(*class_eval))
+    result_file.close()
 
 
 def main():
