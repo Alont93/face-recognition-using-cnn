@@ -17,7 +17,7 @@ import numpy as np
 
 # Custom files
 from baseline_cnn import AlexNet, Nnet, TransferNet, Loader
-from utils import evaluate, weights_init, get_k_fold_indecies, get_transformers
+from utils import evaluate, weights_init, get_k_fold_indecies, get_transformers, get_current_time
 
 NETS = {
     "AlexNet": AlexNet,
@@ -88,7 +88,7 @@ def train(dataset, weighted_loss=False):
         optimizer = optim.Adam(net.parameters(), lr=0.0001, weight_decay=0.0005)
 
         # Fit and save model to file
-        save_path = "./{}_model{}.pth".format(str(net), k)
+        save_path = "./{}_model{}_{}.pth".format(str(net), k, get_current_time())
         fit_model(computing_device, net, criterion, optimizer, train_loader, validation_loader,
                   save_path=save_path)
         nnets.append(net)
@@ -188,7 +188,7 @@ def plot_loss(net):
     plt.ylabel("Cross Entropy Loss")
     plt.title("Loss as a function of number of epochs")
     plt.legend()
-    plt.savefig('validation_plot.png')
+    plt.savefig('validation_plot_%s_%s_.png' % (settings['NNET'].__name__, get_current_time()))
 
 
 def test(net, test_dataset):
@@ -214,10 +214,9 @@ def test(net, test_dataset):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--net", "-n", help="Select neural network", type=bool)
     parser.add_argument("--server", "-s", help="If running on server", type=bool, default=False)
-    parser.add_argument("--epochs", "-e", help="Number of epochs", type=int, default=50)
-    parser.add_argument("--mini", "-m", help="Do you want to run with only 10 classes?", type=bool, default=False)
+    parser.add_argument("--epochs", "-e", help="Number of epochs", type=int, default=1)
+    parser.add_argument("--mini", "-m", help="Do you want to run with only 10 classes?", type=bool, default=True)
     parser.add_argument("--net", "-n", help="AlexNet | Nnet | TransferNet", default="Nnet")
 
     args = parser.parse_args()

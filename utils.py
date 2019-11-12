@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import numpy as np
 import torch.nn as nn
 import matplotlib.pyplot as plt
@@ -33,6 +35,10 @@ def rand_train_val_split(dataset, validation_split=0.2, shuffle_dataset=True, ra
         np.random.shuffle(indices)
     train_indices, val_indices = indices[split:], indices[:split]
     return train_indices, val_indices
+
+
+def get_current_time():
+    return datetime.now().strftime("%m.%d.%Y %H:%M:%S")
 
 
 def get_k_fold_indecies(dataset, k=3):
