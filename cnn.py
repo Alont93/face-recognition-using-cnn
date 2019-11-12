@@ -98,7 +98,11 @@ def train(dataset, weighted_loss=False):
             criterion = nn.CrossEntropyLoss(weight=dataset.get_class_weights())
         else:
             criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(net.parameters(), lr=0.0001, weight_decay=0)
+
+        if str(net) == "TransferNet":
+            optimizer = optim.Adam(net.main.classifier.parameters(), weight_decay=0.005)
+        else:
+            optimizer = optim.Adam(net.parameters(), lr=0.0001,  weight_decay=0.0)
 
         # Fit and save model to file
         if settings['K-FOLD']:
@@ -252,7 +256,7 @@ if __name__ == '__main__':
         settings['DATA_PATHS']['TEST_CSV'] = "mini_test.csv"
 
     # Load and transform data
-    transform = get_transformers()["alon"]
+    transform = get_transformers()["default"]
     dataset = Loader(settings['DATA_PATHS']['TRAIN_CSV'], settings['DATA_PATHS']['DATASET_PATH'], transform=transform)
     test_dataset = Loader(settings['DATA_PATHS']['TEST_CSV'], settings['DATA_PATHS']['DATASET_PATH'],
                           transform=transform)
