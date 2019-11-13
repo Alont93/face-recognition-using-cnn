@@ -20,7 +20,7 @@ from baseline_cnn import ExNet, Nnet, TransferNet, Loader
 from utils import evaluate, weights_init, get_k_fold_indecies, get_transformers, get_current_time
 
 NETS = {
-    "AlexNet": ExNet,
+    "ExNet": ExNet,
     "Nnet": Nnet,
     "TransferNet": TransferNet
 }
