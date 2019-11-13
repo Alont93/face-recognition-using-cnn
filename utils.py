@@ -66,7 +66,7 @@ def get_k_fold_indecies(dataset, random_seed, k=3):
     return kf.split(indices)
 
 
-def weights_init(m, xavier=False):
+def weights_init(m, xavier=True):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
         if xavier:

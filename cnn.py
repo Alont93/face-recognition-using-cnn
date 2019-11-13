@@ -18,23 +18,31 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Custom files
-from baseline_cnn import AlexNet, Nnet, Loader
+from ExNet
+from baseline_cnn import Nnet, Loader, ExNet, TronNet
 from utils import evaluate, weights_init, get_k_fold_indecies, get_transformers, get_current_time
 
 
+TIME = None
+
 NETS = {
-    "AlexNet": AlexNet,
+    "ExNet": ExNet,
     "Nnet": Nnet,
-    "TransferNet": None
+    "TransferNet": None,
+    "TronNet": TronNet
 }
 settings = {
     'EPOCHS': 50,
     'BATCH_SIZE': 256,
+    'LR': 0.008,
+    'DECAY': 0,
     'NUM_CLASSES': 201,
     'RANDOM_SEED': 42,
     'K-FOLD': False,
+    'WLOSS': True,
     'K-FOLD-NUMBER': 2,
-    'NNET': AlexNet,
+    'NNET': None,
+    'TRANSFORMER': "default",
     'DATA_PATHS': {
         'TRAIN_CSV': 'train.csv',
         'TEST_CSV': 'test.csv',
@@ -64,7 +72,7 @@ def check_cuda():
     return computing_device, extras
 
 
-def train(dataset, weighted_loss=False):
+def train(dataset):
     computing_device, extra = check_cuda()
 
     # Save all the k models to compare
@@ -109,21 +117,22 @@ def train(dataset, weighted_loss=False):
             net.apply(weights_init)
 
         # Initialize optimizer and criterion
-        if weighted_loss:
-            criterion = nn.CrossEntropyLoss(weight=dataset.get_class_weights())
+        if settings["WLOSS"]:
+            criterion = nn.CrossEntropyLoss(weight=dataset.get_class_weights().to(computing_device))
         else:
             criterion = nn.CrossEntropyLoss()
 
         if str(net) == "TransferNet":
-            optimizer = optim.Adam(net.main.classifier.parameters(), lr=0.008,  weight_decay=0.0005)
+
+            optimizer = optim.Adam(net.main.classifier.parameters(), lr=settings["LR"], weight_decay=settings["DECAY"])
         else:
-            optimizer = optim.Adam(net.parameters(), lr=0.0003,  weight_decay=0.0)
+            optimizer = optim.Adam(net.parameters(), lr=settings["LR"], weight_decay=settings["DECAY"])
 
         # Fit and save model to file
         if settings['K-FOLD']:
-            save_path = "./{}_model{}_{}.pth".format(net.__class__.__name__, k, get_current_time())
+            save_path = "./{}_model{}_{}.pth".format(str(net), k, TIME)
         else:
-            save_path = "./{}_model_{}.pth".format(net.__class__.__name__, get_current_time())
+            save_path = "./{}_model_{}.pth".format(str(net), TIME)
 
         fit_model(computing_device, net, criterion, optimizer, train_loader, validation_loader,
                   save_path=save_path)
@@ -235,8 +244,10 @@ def test(net, test_dataset):
     :return:
     """
     computing_device, extra = check_cuda()
-    test_loader = DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=settings["BATCH_SIZE"], shuffle=False)
     with torch.no_grad():
+        all_predictions = []
+        all_labels = []
         for images, labels in test_loader:  # Remember they come in batches
             images, labels = images.to(computing_device), labels.to(computing_device)
             # Since we are not doing this through criterion, we must add softmax our self
@@ -245,33 +256,48 @@ def test(net, test_dataset):
 
             predicted = func.one_hot(predicted, num_classes=settings['NUM_CLASSES']).type(torch.FloatTensor)
             labels = func.one_hot(labels, num_classes=settings['NUM_CLASSES']).type(torch.FloatTensor)
-            evaluate(predicted, labels, net, settings)
+            all_predictions.append(predicted)
+            all_labels.append(labels)
+
+        all_predictions = torch.cat(all_predictions, dim=1)
+        all_labels = torch.cat(all_labels, dim=1)
+        evaluate(all_predictions, all_labels, net, settings)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--server", "-s", help="If running on server", type=bool, default=False)
+    parser.add_argument("--server", "-s", help="If running on server", default=False)
     parser.add_argument("--epochs", "-e", help="Number of epochs", type=int)
-    parser.add_argument("--mini", "-m", help="Do you want to run with only 10 classes?", type=bool, default=False)
-    parser.add_argument("--net", "-n", help="AlexNet | Nnet | TransferNet", default="TransferNet")
+    parser.add_argument("--mini", "-m", help="Do you want to run with only 10 classes?", default=False)
+    parser.add_argument("--net", "-n", help="AlexNet | Nnet | TransferNet", default="AlexNet")
     parser.add_argument("--kfold", "-k", help="Enable K-fold cross validation", default=False)
+    parser.add_argument("--lr", "-lr", help="Learning Rate", type=float, default=0.0001)
+    parser.add_argument("--decay", "-d", help="Weight Decay", type=float, default=0)
+    parser.add_argument("--wloss", "-wl", help="Use weighted loss", default=True)
+    parser.add_argument("--transformer", "-t", help="What transformer to run on images", default="default")
 
     args = parser.parse_args()
-    if args.server:
+    if args.server == "True":
         settings['DATA_PATHS']['DATASET_PATH'] = '/datasets/cs154-fa19-public/'
     if args.net:
         settings['NNET'] = NETS[args.net]
-    if args.net:
-        settings['K-FOLD'] = bool(args.kfold)
+    settings['K-FOLD'] = args.kfold == "True"
     if args.epochs:
         settings['EPOCHS'] = args.epochs
-    if args.mini:
+    if args.mini == "True":
         settings['NUM_CLASSES'] = 11
         settings['DATA_PATHS']['TRAIN_CSV'] = "mini_train.csv"
         settings['DATA_PATHS']['TEST_CSV'] = "mini_test.csv"
+    if args.lr:
+        settings["LR"] = args.lr
+    if args.decay:
+        settings["DECAY"] = args.decay
+    settings["WLOSS"] = args.wloss == "True"
+    settings["TRANSFORMER"] = args.transformer
 
+    TIME = get_current_time()
     # Load and transform data
-    transform = get_transformers()["jon"]
+    transform = get_transformers()[settings["TRANSFORMER"]]
     dataset = Loader(settings['DATA_PATHS']['TRAIN_CSV'], settings['DATA_PATHS']['DATASET_PATH'], transform=transform)
     test_dataset = Loader(settings['DATA_PATHS']['TEST_CSV'], settings['DATA_PATHS']['DATASET_PATH'],
                           transform=transform)
