@@ -136,7 +136,7 @@ class ExNet(nn.Module):
 
 class TronNet(nn.Module):
     def __init__(self, num_classes=201):
-        super(Nnet, self).__init__()
+        super(TronNet, self).__init__()
         self.main = nn.Sequential(
             nn.Conv2d(3, 21, 3, stride=1, padding=1, bias=False),
             nn.ReLU(inplace=True),
