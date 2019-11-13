@@ -99,7 +99,7 @@ def train(dataset):
 
         # Initialize optimizer and criterion
         if settings["WLOSS"]:
-            criterion = nn.CrossEntropyLoss(weight=dataset.get_class_weights())
+            criterion = nn.CrossEntropyLoss(weight=dataset.get_class_weights().to(computing_device))
         else:
             criterion = nn.CrossEntropyLoss()
 
