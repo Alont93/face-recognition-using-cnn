@@ -242,6 +242,7 @@ def test(net, test_dataset):
     :param test_dataset: torch.utils.data.Dataset
     :return:
     """
+    logging.info("Started predicting testing data...")
     computing_device, extra = check_cuda()
     test_loader = DataLoader(test_dataset, batch_size=settings["BATCH_SIZE"], shuffle=False)
     with torch.no_grad():
@@ -258,8 +259,9 @@ def test(net, test_dataset):
             all_predictions.append(predicted)
             all_labels.append(labels)
 
-        all_predictions = torch.cat(all_predictions, dim=1)
-        all_labels = torch.cat(all_labels, dim=1)
+        all_predictions = torch.cat(all_predictions)
+        all_labels = torch.cat(all_labels)
+        logging.log("Evaluating test results...")
         evaluate(all_predictions, all_labels, net, settings)
 
 
@@ -306,3 +308,5 @@ if __name__ == '__main__':
     best_model = train(dataset)
     plot_loss(best_model)
     test(best_model, test_dataset)
+
+

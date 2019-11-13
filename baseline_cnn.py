@@ -181,4 +181,35 @@ class TronNet(nn.Module):
         return "TronNet"
 
 
+class OldTransfer(nn.Module):
+    def __init__(self, num_classes=201):
+        super(OldTransfer, self).__init__()
+        self.main = models.vgg16(pretrained=True)
+
+        # Freeze parameters, so gradient not computed here
+        for param in self.main.parameters():
+            param.requires_grad = False
+
+        # Parameters of newly constructed modules have requires_grad=True by default
+        num_ftrs = self.main.classifier[0].in_features
+        self.main.classifier = nn.Sequential(
+            nn.Linear(num_ftrs, 300, bias=True),
+            nn.ReLU(inplace=True),
+            nn.Linear(300, 201, bias=True)
+        )
+        self.train_epoch_losses = []
+        self.val_epoch_losses = []
+
+    def forward(self, input):
+        x = self.main.features(input)
+        x = self.main.avgpool(x)
+        x = x.view(-1, num_flat_features(x))
+        return self.main.classifier(x)
+
+    def __str__(self):
+        return "OldTransfer"
+
+    def __repr__(self):
+        return "OldTransfer"
+
 
