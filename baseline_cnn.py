@@ -218,24 +218,16 @@ class TransferNet3(nn.Module):
 class TransferNet(nn.Module):
     def __init__(self, num_classes=201):
         super(TransferNet, self).__init__()
-        self.main = models.vgg16(pretrained=True)
+        self.main = models.vgg11(pretrained=True)
 
         # Freeze parameters, so gradient not computed here
         for param in self.main.parameters():
             param.requires_grad = False
 
         # Parameters of newly constructed modules have requires_grad=True by default
-        # self.classifier = nn.Sequential(
-        #     nn.Linear(512 * 7 * 7, 512),
-        #     nn.ReLU(True),
-        #     nn.Dropout(),
-        #     nn.Linear(512, 512),
-        #     nn.ReLU(True),
-        #     nn.Linear(512, num_classes),
-        # )
-
         num_ftrs = self.main.classifier[6].in_features
         self.main.classifier[6] = nn.Linear(num_ftrs, num_classes)
+
         self.train_epoch_losses = []
         self.val_epoch_losses = []
 
