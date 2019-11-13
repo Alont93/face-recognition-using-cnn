@@ -247,6 +247,7 @@ def test(net, test_dataset):
     computing_device, extra = check_cuda()
     test_loader = DataLoader(test_dataset, batch_size=settings["BATCH_SIZE"], shuffle=False)
     with torch.no_grad():
+        net.eval()
         all_predictions = []
         all_labels = []
         for images, labels in test_loader:  # Remember they come in batches
