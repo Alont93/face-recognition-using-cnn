@@ -215,7 +215,7 @@ def evaluate(output, labels, net, settings):
         evaluate_per_class.append((c, accuracy, precision, recall, bcr, aggregated_score))
 
     # Save to file as well as print to console
-    result_file = open("{}_test_results.csv".format(net.__class__.__name__), mode="w")
+    result_file = open("{}_test_results_{}.csv".format(net.__class__.__name__, get_current_time()), mode="w")
     csv_writer = csv.writer(result_file, delimiter=',')
     csv_writer.writerow([str(settings)])
     csv_writer.writerow(headers)
@@ -256,4 +256,4 @@ def main():
     labels = np.eye(20)[np.random.choice(20, 1000)]
     evaluate(pred, labels)
 
-# main()
+

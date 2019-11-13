@@ -154,6 +154,7 @@ def fit_model(computing_device, net, criterion, optimizer, train_loader, validat
     :param save_path: string
     :return:
     """
+    net.train()
     for epoch in range(settings['EPOCHS']):
         N_minibatch_loss = 0.0
         N = 50
@@ -202,6 +203,7 @@ def fit_model(computing_device, net, criterion, optimizer, train_loader, validat
 
         # Validate
         with torch.no_grad():
+            net.eval()
             for images, labels in validation_loader:
                 # Put the validation mini-batch data in CUDA Tensors and run on the GPU if supported
                 images, labels = images.to(computing_device), labels.to(computing_device)
@@ -242,6 +244,7 @@ def test(net, test_dataset):
     :param test_dataset: torch.utils.data.Dataset
     :return:
     """
+    logging.info("Started predicting testing data...")
     computing_device, extra = check_cuda()
     test_loader = DataLoader(test_dataset, batch_size=settings["BATCH_SIZE"], shuffle=False)
     with torch.no_grad():
@@ -258,8 +261,9 @@ def test(net, test_dataset):
             all_predictions.append(predicted)
             all_labels.append(labels)
 
-        all_predictions = torch.cat(all_predictions, dim=1)
-        all_labels = torch.cat(all_labels, dim=1)
+        all_predictions = torch.cat(all_predictions)
+        all_labels = torch.cat(all_labels)
+        logging.info("Evaluating test results...")
         evaluate(all_predictions, all_labels, net, settings)
 
 
@@ -306,3 +310,5 @@ if __name__ == '__main__':
     best_model = train(dataset)
     plot_loss(best_model)
     test(best_model, test_dataset)
+
+
