@@ -86,57 +86,58 @@ class Nnet(nn.Module):
         return "Nnet"
 
 
-class AlexNet(nn.Module):
+class ExNet(nn.Module):
     def __init__(self, num_classes=201):
-        super(AlexNet, self).__init__()
+        super(ExNet, self).__init__()
         self.main = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=11, stride=4, padding=2),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2),
-            nn.Conv2d(64, 192, kernel_size=5, padding=2),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2),
-            nn.Conv2d(192, 384, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(384, 256, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(256, 256, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.Conv2d(3, 64, 7, stride=2),
+            nn.MaxPool2d(3, stride=2),
+            nn.BatchNorm2d(64),
 
+            nn.Conv2d(64, 192, 3, stride=1),
+            nn.BatchNorm2d(192),
+            nn.MaxPool2d(3, stride=2),
+
+            nn.Conv2d(192, 384, 3, stride=1),
+            nn.MaxPool2d(3, stride=2),
+
+            nn.Conv2d(384, 256, 3, stride=1),
+            nn.BatchNorm2d(256),
+            nn.Dropout(0.4),
+            nn.Conv2d(256, 256, 3, stride=1),
+            nn.BatchNorm2d(256),
+            nn.Dropout(0.4),
+            nn.Conv2d(256, 256, 3, stride=1),
+            nn.BatchNorm2d(256),
+            nn.MaxPool2d(3, stride=2)
+        )
+        self.fc = nn.Sequential(
+            nn.Dropout(0.6),
+            nn.Linear(1024, 512),
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.6),
+            nn.Linear(512, num_classes)
         )
 
-        self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
-        self.classifier = nn.Sequential(
-            nn.Dropout(),
-            nn.Linear(256 * 6 * 6, 4096),
-            nn.ReLU(inplace=True),
-            nn.Dropout(),
-            nn.Linear(4096, 4096),
-            nn.ReLU(inplace=True),
-            nn.Linear(4096, num_classes),
-        )
         self.train_epoch_losses = []
         self.val_epoch_losses = []
 
-    def forward(self, x):
-        x = self.main(x)
-        x = self.avgpool(x)
+    def forward(self, input):
+        x = self.main(input)
         x = torch.flatten(x, 1)
-        x = self.classifier(x)
-        return x
+        return self.fc(x)
 
     def __str__(self):
-        return "AlexNet"
+        return "ExNet"
 
     def __repr__(self):
-        return "AlexNet"
+        return "ExNet"
 
 
 class TransferNet(nn.Module):
     def __init__(self, num_classes=201):
         super(TransferNet, self).__init__()
-        self.main = models.vgg16(pretrained=True)
+        self.main = models.vgg11(pretrained=True)
 
         # Freeze parameters, so gradient not computed here
         for param in self.main.parameters():
@@ -147,7 +148,7 @@ class TransferNet(nn.Module):
         self.main.classifier = nn.Sequential(
             nn.Linear(num_ftrs, 300, bias=True),
             nn.ReLU(inplace=True),
-            nn.Linear(300, 201, bias=True)
+            nn.Linear(300, num_classes, bias=True)
         )
         self.train_epoch_losses = []
         self.val_epoch_losses = []
@@ -163,4 +164,3 @@ class TransferNet(nn.Module):
 
     def __repr__(self):
         return "TransferNet"
-
