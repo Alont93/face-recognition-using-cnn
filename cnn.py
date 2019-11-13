@@ -102,7 +102,7 @@ def train(dataset, weighted_loss=False):
         if str(net) == "TransferNet":
             optimizer = optim.Adam(net.main.classifier.parameters(), weight_decay=0.005)
         else:
-            optimizer = optim.Adam(net.parameters(), lr=0.0001,  weight_decay=0.0)
+            optimizer = optim.Adam(net.parameters(), lr=0.0001,  weight_decay=0.005)
 
         # Fit and save model to file
         if settings['K-FOLD']:
