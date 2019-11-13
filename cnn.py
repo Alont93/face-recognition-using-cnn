@@ -19,6 +19,7 @@ import numpy as np
 from baseline_cnn import ExNet, Nnet, TransferNet, Loader
 from utils import evaluate, weights_init, get_k_fold_indecies, get_transformers, get_current_time
 
+TIME = None
 NETS = {
     "ExNet": ExNet,
     "Nnet": Nnet,
@@ -110,9 +111,9 @@ def train(dataset):
 
         # Fit and save model to file
         if settings['K-FOLD']:
-            save_path = "./{}_model{}_{}.pth".format(str(net), k, get_current_time())
+            save_path = "./{}_model{}_{}.pth".format(str(net), k, TIME)
         else:
-            save_path = "./{}_model_{}.pth".format(str(net), get_current_time())
+            save_path = "./{}_model_{}.pth".format(str(net), TIME)
 
         fit_model(computing_device, net, criterion, optimizer, train_loader, validation_loader,
                   save_path=save_path)
@@ -213,7 +214,7 @@ def plot_loss(net):
     plt.ylabel("Cross Entropy Loss")
     plt.title("Loss as a function of number of epochs")
     plt.legend()
-    plt.savefig('validation_plot_%s_%s_.png' % (settings['NNET'].__name__, get_current_time()))
+    plt.savefig('validation_plot_%s_%s_.png' % (settings['NNET'].__name__, TIME))
 
 
 def test(net, test_dataset):
@@ -275,6 +276,7 @@ if __name__ == '__main__':
     settings["WLOSS"] = args.wloss == "True"
     settings["TRANSFORMER"] = args.transformer
 
+    TIME = get_current_time()
     # Load and transform data
     transform = get_transformers()[settings["TRANSFORMER"]]
     dataset = Loader(settings['DATA_PATHS']['TRAIN_CSV'], settings['DATA_PATHS']['DATASET_PATH'], transform=transform)
