@@ -110,10 +110,10 @@ class AlexNet(nn.Module):
             nn.MaxPool2d(3, stride=2)
         )
         self.fc = nn.Sequential(
-            nn.Dropout(0.4),
+            nn.Dropout(0.6),
             nn.Linear(1024, 512),
             nn.ReLU(inplace=True),
-            nn.Dropout(0.4),
+            nn.Dropout(0.6),
             nn.Linear(512, num_classes)
         )
 
