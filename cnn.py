@@ -10,14 +10,17 @@ import torch.nn.functional as func
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
+import torchvision.models as models
+
 
 # Basics
 import matplotlib.pyplot as plt
 import numpy as np
 
 # Custom files
-from baseline_cnn import AlexNet, Nnet, TransferNet, Loader
+from baseline_cnn import AlexNet, Nnet, TransferNet, Loader, TransferLearning2
 from utils import evaluate, weights_init, get_k_fold_indecies, get_transformers, get_current_time
+
 
 NETS = {
     "AlexNet": AlexNet,
@@ -26,7 +29,7 @@ NETS = {
 }
 settings = {
     'EPOCHS': 50,
-    'BATCH_SIZE': 64,
+    'BATCH_SIZE': 256,
     'NUM_CLASSES': 201,
     'RANDOM_SEED': 42,
     'K-FOLD': False,
@@ -38,7 +41,8 @@ settings = {
         'DATASET_PATH': './datasets/cs154-fa19-public/'
     }
 }
-
+train_epoch_losses = []
+val_epoch_losses = []
 logging.basicConfig(filename='app.log', filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
@@ -73,9 +77,9 @@ def train(dataset, weighted_loss=False):
     else:
         indices = list(range(len(dataset)))
         validation_split = .2
+        split = int(np.floor(validation_split * len(dataset)))
         np.random.seed(settings['RANDOM_SEED'])
         np.random.shuffle(indices)
-        split = int(np.floor(validation_split * len(dataset)))
         train_indices, val_indices = indices[split:], indices[:split]
         indices = [(train_indices, val_indices)]
 
@@ -86,28 +90,40 @@ def train(dataset, weighted_loss=False):
         # Load data for this fold
         train_sampler = SubsetRandomSampler(train_indices)
         valid_sampler = SubsetRandomSampler(val_indices)
-        train_loader = DataLoader(dataset, batch_size=batch_size, sampler=train_sampler)
-        validation_loader = DataLoader(dataset, batch_size=batch_size, sampler=valid_sampler)
+        train_loader = DataLoader(dataset, batch_size=batch_size, sampler=train_sampler, num_workers=10)
+        validation_loader = DataLoader(dataset, batch_size=batch_size, sampler=valid_sampler, num_workers=10)
 
         # Initialize CNN
-        net = settings['NNET'](settings['NUM_CLASSES']).to(computing_device)
-        net.apply(weights_init)
+        if settings['NNET'] == TransferNet:
+            net = models.resnet152(pretrained=True)
+
+            # Freeze parameters, so gradient not computed here
+            for param in net.parameters():
+                param.requires_grad = False
+
+            num_ftrs = net.fc.in_features
+            net.fc = nn.Linear(num_ftrs, settings['NUM_CLASSES'])
+            net = net.to(computing_device)
+        else:
+            net = settings['NNET'](settings['NUM_CLASSES']).to(computing_device)
+            net.apply(weights_init)
 
         # Initialize optimizer and criterion
         if weighted_loss:
             criterion = nn.CrossEntropyLoss(weight=dataset.get_class_weights())
         else:
             criterion = nn.CrossEntropyLoss()
+
         if str(net) == "TransferNet":
-            optimizer = optim.Adam(net.main.classifier.parameters(), weight_decay=0.005)
+            optimizer = optim.Adam(net.main.classifier.parameters(), lr=0.1,  weight_decay=0.0)
         else:
-            optimizer = optim.Adam(net.parameters(), weight_decay=0.005)
+            optimizer = optim.Adam(net.parameters(), lr=0.0003,  weight_decay=0.0)
 
         # Fit and save model to file
         if settings['K-FOLD']:
-            save_path = "./{}_model{}_{}.pth".format(str(net), k, get_current_time())
+            save_path = "./{}_model{}_{}.pth".format(net.__class__.__name__, k, get_current_time())
         else:
-            save_path = "./{}_model_{}.pth".format(str(net), get_current_time())
+            save_path = "./{}_model_{}.pth".format(net.__class__.__name__, get_current_time())
 
         fit_model(computing_device, net, criterion, optimizer, train_loader, validation_loader,
                   save_path=save_path)
@@ -141,7 +157,6 @@ def fit_model(computing_device, net, criterion, optimizer, train_loader, validat
         # Get the next minibatch of images, labels for training
         for minibatch_count, (images, labels) in enumerate(train_loader, 0):
             fraction_done = round(minibatch_count / len(train_loader) * 100, 3)
-            print("{} percent of epoch {} complete".format(fraction_done, epoch + 1), end="\r")
             # Zero out the stored gradient (buffer) from the previous iteration
             optimizer.zero_grad()
             # Put the minibatch data in CUDA Tensors and run on the GPU if supported
@@ -175,11 +190,11 @@ def fit_model(computing_device, net, criterion, optimizer, train_loader, validat
 
         # Save this epochs training loss
         train_epoch_loss = np.average(np.array(train_batch_losses))
-        net.train_epoch_losses.append(train_epoch_loss)
+        train_epoch_losses.append(train_epoch_loss)
 
         # Validate
         with torch.no_grad():
-            for _, (images, labels) in enumerate(validation_loader, 0):
+            for images, labels in validation_loader:
                 # Put the validation mini-batch data in CUDA Tensors and run on the GPU if supported
                 images, labels = images.to(computing_device), labels.to(computing_device)
                 # Perform the forward pass through the network and compute the loss
@@ -190,7 +205,7 @@ def fit_model(computing_device, net, criterion, optimizer, train_loader, validat
 
             # Save this epochs validation loss
             val_epoch_loss = np.average(np.array(val_batch_losses))
-            net.val_epoch_losses.append(val_epoch_loss)
+            val_epoch_losses.append(val_epoch_loss)
 
         logging.info(
             'Epoch %d Training loss: %.3f Validation loss: %.3f' % (epoch + 1, train_epoch_loss, val_epoch_loss))
@@ -202,8 +217,8 @@ def plot_loss(net):
     :param net: nn.Module
     :return:
     """
-    plt.plot(net.train_epoch_losses, label="train loss")
-    plt.plot(net.val_epoch_losses, label="validation loss")
+    plt.plot(train_epoch_losses, label="train loss")
+    plt.plot(val_epoch_losses, label="validation loss")
     plt.xlabel("Epoch")
     plt.ylabel("Cross Entropy Loss")
     plt.title("Loss as a function of number of epochs")
@@ -237,7 +252,7 @@ if __name__ == '__main__':
     parser.add_argument("--server", "-s", help="If running on server", type=bool, default=False)
     parser.add_argument("--epochs", "-e", help="Number of epochs", type=int)
     parser.add_argument("--mini", "-m", help="Do you want to run with only 10 classes?", type=bool, default=False)
-    parser.add_argument("--net", "-n", help="AlexNet | Nnet | TransferNet", default="Nnet")
+    parser.add_argument("--net", "-n", help="AlexNet | Nnet | TransferNet", default="TransferNet")
     parser.add_argument("--kfold", "-k", help="Enable K-fold cross validation", default=False)
 
     args = parser.parse_args()
@@ -255,7 +270,7 @@ if __name__ == '__main__':
         settings['DATA_PATHS']['TEST_CSV'] = "mini_test.csv"
 
     # Load and transform data
-    transform = get_transformers()["default"]
+    transform = get_transformers()["alon"]
     dataset = Loader(settings['DATA_PATHS']['TRAIN_CSV'], settings['DATA_PATHS']['DATASET_PATH'], transform=transform)
     test_dataset = Loader(settings['DATA_PATHS']['TEST_CSV'], settings['DATA_PATHS']['DATASET_PATH'],
                           transform=transform)
