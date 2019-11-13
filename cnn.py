@@ -27,9 +27,12 @@ NETS = {
 settings = {
     'EPOCHS': 50,
     'BATCH_SIZE': 256,
+    'LR': 0.0001,
+    'DECAY': 0,
     'NUM_CLASSES': 201,
     'RANDOM_SEED': 42,
     'K-FOLD': True,
+    'WLOSS': True,
     'K-FOLD-NUMBER': 2,
     'NNET': AlexNet,
     'DATA_PATHS': {
@@ -60,7 +63,7 @@ def check_cuda():
     return computing_device, extras
 
 
-def train(dataset, weighted_loss=False):
+def train(dataset):
     computing_device, extra = check_cuda()
 
     # Save all the k models to compare
@@ -94,15 +97,15 @@ def train(dataset, weighted_loss=False):
         net.apply(weights_init)
 
         # Initialize optimizer and criterion
-        if weighted_loss:
+        if settings["WLOSS"]:
             criterion = nn.CrossEntropyLoss(weight=dataset.get_class_weights())
         else:
             criterion = nn.CrossEntropyLoss()
 
         if str(net) == "TransferNet":
-            optimizer = optim.Adam(net.main.classifier.parameters(), weight_decay=0.005)
+            optimizer = optim.Adam(net.main.classifier.parameters(), lr=settings["LR"], weight_decay=settings["DECAY"])
         else:
-            optimizer = optim.Adam(net.parameters(), lr=0.0002,  weight_decay=0.005)
+            optimizer = optim.Adam(net.parameters(), lr=settings["LR"], weight_decay=settings["DECAY"])
 
         # Fit and save model to file
         if settings['K-FOLD']:
@@ -242,25 +245,32 @@ def test(net, test_dataset):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--server", "-s", help="If running on server", type=bool, default=False)
+    parser.add_argument("--server", "-s", help="If running on server", default=False)
     parser.add_argument("--epochs", "-e", help="Number of epochs", type=int)
-    parser.add_argument("--mini", "-m", help="Do you want to run with only 10 classes?", type=bool, default=False)
+    parser.add_argument("--mini", "-m", help="Do you want to run with only 10 classes?", default=False)
     parser.add_argument("--net", "-n", help="AlexNet | Nnet | TransferNet", default="AlexNet")
     parser.add_argument("--kfold", "-k", help="Enable K-fold cross validation", default=False)
+    parser.add_argument("--lr", "-lr", help="Learning Rate", type=float, default=0.0001)
+    parser.add_argument("--decay", "-d", help="Weight Decay", type=float, default=0)
+    parser.add_argument("--wloss", "-wl", help="Use weighted loss", default=True)
 
     args = parser.parse_args()
-    if args.server:
+    if args.server == "True":
         settings['DATA_PATHS']['DATASET_PATH'] = '/datasets/cs154-fa19-public/'
     if args.net:
         settings['NNET'] = NETS[args.net]
-    if args.net:
-        settings['K-FOLD'] = bool(args.kfold)
+    settings['K-FOLD'] = args.kfold == "True"
     if args.epochs:
         settings['EPOCHS'] = args.epochs
-    if args.mini:
+    if args.mini == "True":
         settings['NUM_CLASSES'] = 11
         settings['DATA_PATHS']['TRAIN_CSV'] = "mini_train.csv"
         settings['DATA_PATHS']['TEST_CSV'] = "mini_test.csv"
+    if args.lr:
+        settings["LR"] = args.lr
+    if args.decay:
+        settings["DECAY"] = args.decay
+    settings["WLOSS"] = args.wloss == "True"
 
     # Load and transform data
     transform = get_transformers()["default"]
