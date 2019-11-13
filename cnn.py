@@ -18,7 +18,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Custom files
-from ExNet
 from baseline_cnn import Nnet, Loader, ExNet, TronNet
 from utils import evaluate, weights_init, get_k_fold_indecies, get_transformers, get_current_time
 
