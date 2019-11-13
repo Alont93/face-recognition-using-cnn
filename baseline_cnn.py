@@ -107,8 +107,10 @@ class AlexNet(nn.Module):
             nn.MaxPool2d(3, stride=2)
         )
         self.fc = nn.Sequential(
+            nn.Dropout(0.4),
             nn.Linear(1024, 512),
             nn.ReLU(inplace=True),
+            nn.Dropout(0.4),
             nn.Linear(512, num_classes)
         )
 
@@ -203,8 +205,3 @@ class TransferNet(nn.Module):
 
     def __repr__(self):
         return "TransferNet"
-
-
-
-
-
