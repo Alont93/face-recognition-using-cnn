@@ -18,7 +18,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Custom files
-from ExNet
 from baseline_cnn import Nnet, Loader, ExNet, TronNet
 from utils import evaluate, weights_init, get_k_fold_indecies, get_transformers, get_current_time
 
@@ -103,7 +102,7 @@ def train(dataset):
 
         # Initialize CNN
         if settings['NNET'] is None:
-            net = models.resnet152(pretrained=True)
+            net = models.resnet18(pretrained=True)
 
             # Freeze parameters, so gradient not computed here
             for param in net.parameters():
@@ -122,7 +121,7 @@ def train(dataset):
         else:
             criterion = nn.CrossEntropyLoss()
 
-        if str(net) == "TransferNet":
+        if net.__class__.__name__ == "TransferNet":
 
             optimizer = optim.Adam(net.main.classifier.parameters(), lr=settings["LR"], weight_decay=settings["DECAY"])
         else:
@@ -130,9 +129,9 @@ def train(dataset):
 
         # Fit and save model to file
         if settings['K-FOLD']:
-            save_path = "./{}_model{}_{}.pth".format(str(net), k, TIME)
+            save_path = "./{}_model{}_{}.pth".format(net.__class__.__name__, k, TIME)
         else:
-            save_path = "./{}_model_{}.pth".format(str(net), TIME)
+            save_path = "./{}_model_{}.pth".format(net.__class__.__name__, TIME)
 
         fit_model(computing_device, net, criterion, optimizer, train_loader, validation_loader,
                   save_path=save_path)
@@ -271,7 +270,7 @@ if __name__ == '__main__':
     parser.add_argument("--mini", "-m", help="Do you want to run with only 10 classes?", default=False)
     parser.add_argument("--net", "-n", help="AlexNet | Nnet | TransferNet", default="AlexNet")
     parser.add_argument("--kfold", "-k", help="Enable K-fold cross validation", default=False)
-    parser.add_argument("--lr", "-lr", help="Learning Rate", type=float, default=0.0001)
+    parser.add_argument("--lr", "-lr", help="Learning Rate", type=float)
     parser.add_argument("--decay", "-d", help="Weight Decay", type=float, default=0)
     parser.add_argument("--wloss", "-wl", help="Use weighted loss", default=True)
     parser.add_argument("--transformer", "-t", help="What transformer to run on images", default="default")
