@@ -19,7 +19,7 @@ import numpy as np
 
 # Custom files
 from baseline_cnn import Nnet, Loader, ExNet, TronNet
-from utils import evaluate, weights_init, get_k_fold_indecies, get_transformers, get_current_time
+from utils import evaluate, weights_init, get_k_fold_indecies, get_transformers, get_current_time, sklearn_metrics, sklearn_acc_per_class
 
 
 TIME = None
@@ -265,6 +265,7 @@ def test(net, test_dataset):
         all_labels = torch.cat(all_labels)
         logging.info("Evaluating test results...")
         evaluate(all_predictions, all_labels, net, settings)
+        sklearn_acc_per_class(all_labels, all_predictions)
 
 
 if __name__ == '__main__':

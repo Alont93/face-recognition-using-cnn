@@ -7,6 +7,7 @@ import torchvision
 from sklearn.model_selection import KFold
 from torchvision import transforms
 import csv
+from sklearn.metrics import classification_report, confusion_matrix
 
 
 def get_transformers():
@@ -21,13 +22,13 @@ def get_transformers():
                                                 transforms.ToTensor(),
                                                 transforms.Normalize(mean=dataset_means, std=dataset_std)]),
                     "jon": transforms.Compose([
-                                                transforms.Resize(224),
-                                                transforms.ColorJitter(),
-                                                transforms.RandomCrop(224),
-                                                transforms.RandomHorizontalFlip(),
-                                                transforms.Resize(128),
-                                                transforms.ToTensor()
-                                            ]),
+                        transforms.Resize(224),
+                        transforms.ColorJitter(),
+                        transforms.RandomCrop(224),
+                        transforms.RandomHorizontalFlip(),
+                        transforms.Resize(128),
+                        transforms.ToTensor()
+                    ]),
                     "default": transforms.Compose([transforms.Resize(224),
                                                    transforms.CenterCrop(224),
                                                    transforms.ToTensor()])
@@ -205,14 +206,14 @@ def evaluate(output, labels, net, settings):
     # True positives, false positives, etc.
     truth_per_class = get_truth(output, labels)
     evaluate_per_class = []
+    acc_per_class = sklearn_acc_per_class(labels, output)
     for c in range(output.shape[1]):
         TP, FP, TN, FN = list(map(lambda x: x.item(), truth_per_class[c]))
-        accuracy = (TP + TN) / (TP + FP + TN + FN)
         precision = TP / (FP + TP + 10 ** (-8))
         recall = TP / (TP + FN + 10 ** (-8))
         bcr = 0.5 * (precision + recall)
-        aggregated_score = (accuracy + precision + recall + bcr) / 4
-        evaluate_per_class.append((c, accuracy, precision, recall, bcr, aggregated_score))
+        aggregated_score = (acc_per_class[c] + precision + recall + bcr) / 4
+        evaluate_per_class.append((c, acc_per_class[c], precision, recall, bcr, aggregated_score))
 
     # Save to file as well as print to console
     result_file = open("{}_test_results_{}.csv".format(net.__class__.__name__, get_current_time()), mode="w")
@@ -227,6 +228,20 @@ def evaluate(output, labels, net, settings):
         csv_writer.writerow([round(num, ndigits=3) for num in class_eval])
         print('{:<10d}{:<10.3f}{:<10.3f}{:<10.3f}{:<10.3f}{:<10.3f}'.format(*class_eval))
     result_file.close()
+
+
+def sklearn_metrics(y_true, y_pred):
+    print(classification_report(y_true, y_pred))
+
+
+def sklearn_acc_per_class(y_true, y_pred):
+    _, y_pred = y_pred.max(1)
+    _, y_true = y_true.max(1)
+    cm = confusion_matrix(y_true, y_pred)
+    cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+    acc_per_class = cm.diagonal()
+    acc_per_class = np.concatenate((np.array([0]), acc_per_class), axis=None)
+    return acc_per_class
 
 
 def plot_weights(model, layer):
@@ -255,5 +270,3 @@ def main():
     pred = np.eye(20)[np.random.choice(20, 1000)]
     labels = np.eye(20)[np.random.choice(20, 1000)]
     evaluate(pred, labels)
-
-
