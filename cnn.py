@@ -16,14 +16,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Custom files
-from baseline_cnn import ExNet, Nnet, TransferNet, Loader
+from baseline_cnn import ExNet, Nnet, TransferNet, TronNet, Loader
 from utils import evaluate, weights_init, get_k_fold_indecies, get_transformers, get_current_time
 
 TIME = None
 NETS = {
     "ExNet": ExNet,
     "Nnet": Nnet,
-    "TransferNet": TransferNet
+    "TransferNet": TransferNet,
+    "TronNet": TronNet
 }
 settings = {
     'EPOCHS': 50,
