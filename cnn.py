@@ -26,7 +26,7 @@ NETS = {
 }
 settings = {
     'EPOCHS': 50,
-    'BATCH_SIZE': 64,
+    'BATCH_SIZE': 512,
     'NUM_CLASSES': 201,
     'RANDOM_SEED': 42,
     'K-FOLD': True,
@@ -86,8 +86,8 @@ def train(dataset, weighted_loss=False):
         # Load data for this fold
         train_sampler = SubsetRandomSampler(train_indices)
         valid_sampler = SubsetRandomSampler(val_indices)
-        train_loader = DataLoader(dataset, batch_size=batch_size, sampler=train_sampler)
-        validation_loader = DataLoader(dataset, batch_size=batch_size, sampler=valid_sampler)
+        train_loader = DataLoader(dataset, batch_size=batch_size, sampler=train_sampler, num_workers=10)
+        validation_loader = DataLoader(dataset, batch_size=batch_size, sampler=valid_sampler, num_workers=10)
 
         # Initialize CNN
         net = settings['NNET'](settings['NUM_CLASSES']).to(computing_device)
@@ -102,7 +102,7 @@ def train(dataset, weighted_loss=False):
         if str(net) == "TransferNet":
             optimizer = optim.Adam(net.main.classifier.parameters(), weight_decay=0.005)
         else:
-            optimizer = optim.Adam(net.parameters(), lr=0.0001,  weight_decay=0.005)
+            optimizer = optim.Adam(net.parameters(), lr=0.0003,  weight_decay=0.005)
 
         # Fit and save model to file
         if settings['K-FOLD']:
