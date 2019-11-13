@@ -223,22 +223,20 @@ def evaluate(output, labels, net, settings):
 
 def plot_weights(model, layer):
     COLUMNS_IN_FIGURE = 10
-    weights = model.main._modules.get(str(layer)).weight.data.numpy()
+    weights = model._modules['main']._modules[str(layer)].weight.data.numpy()
 
-    # normalize weights
-    mean = np.mean(weights, axis=(1, 2), keepdims=True)
-    std = np.std(weights, axis=(1, 2), keepdims=True)
-    normalized_weighs = (weights - mean) / std
+    # # normalize weights
+    # mean = np.mean(weights, axis=(2, 3), keepdims=True)
+    # std = np.std(weights, axis=(2, 3), keepdims=True)
+    # weights = (weights - mean) / std
 
-    if not weights.shape[-1] == 3:
-        raise Exception("last dim needs to be 3")
-    num_weights = normalized_weighs.shape[0]
+    num_weights = weights.shape[0]
     num_rows = 1 + num_weights // COLUMNS_IN_FIGURE
     fig = plt.figure(figsize=(COLUMNS_IN_FIGURE, num_rows))
-    for i in range(normalized_weighs.shape[0]):
+    for i in range(weights.shape[1]):
         sub = fig.add_subplot(num_rows, COLUMNS_IN_FIGURE, i + 1)
         sub.axis('off')
-        sub.imshow(normalized_weighs[i])
+        sub.imshow(weights[0][i], cmap='gray')
         sub.set_xticklabels([])
         sub.set_yticklabels([])
 
