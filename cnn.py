@@ -10,33 +10,38 @@ import torch.nn.functional as func
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
+import torchvision.models as models
+
 
 # Basics
 import matplotlib.pyplot as plt
 import numpy as np
 
 # Custom files
-from baseline_cnn import ExNet, Nnet, TransferNet, TronNet, Loader
+from ExNet
+from baseline_cnn import Nnet, Loader, ExNet, TronNet
 from utils import evaluate, weights_init, get_k_fold_indecies, get_transformers, get_current_time
 
+
 TIME = None
+
 NETS = {
     "ExNet": ExNet,
     "Nnet": Nnet,
-    "TransferNet": TransferNet,
+    "TransferNet": None,
     "TronNet": TronNet
 }
 settings = {
     'EPOCHS': 50,
     'BATCH_SIZE': 256,
-    'LR': 0.0001,
+    'LR': 0.008,
     'DECAY': 0,
     'NUM_CLASSES': 201,
     'RANDOM_SEED': 42,
-    'K-FOLD': True,
+    'K-FOLD': False,
     'WLOSS': True,
     'K-FOLD-NUMBER': 2,
-    'NNET': ExNet,
+    'NNET': None,
     'TRANSFORMER': "default",
     'DATA_PATHS': {
         'TRAIN_CSV': 'train.csv',
@@ -44,7 +49,8 @@ settings = {
         'DATASET_PATH': './datasets/cs154-fa19-public/'
     }
 }
-
+train_epoch_losses = []
+val_epoch_losses = []
 logging.basicConfig(filename='app.log', filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
@@ -96,8 +102,19 @@ def train(dataset):
         validation_loader = DataLoader(dataset, batch_size=batch_size, sampler=valid_sampler, num_workers=10)
 
         # Initialize CNN
-        net = settings['NNET'](settings['NUM_CLASSES']).to(computing_device)
-        net.apply(weights_init)
+        if settings['NNET'] is None:
+            net = models.resnet152(pretrained=True)
+
+            # Freeze parameters, so gradient not computed here
+            for param in net.parameters():
+                param.requires_grad = False
+
+            num_ftrs = net.fc.in_features
+            net.fc = nn.Linear(num_ftrs, settings['NUM_CLASSES'])
+            net = net.to(computing_device)
+        else:
+            net = settings['NNET'](settings['NUM_CLASSES']).to(computing_device)
+            net.apply(weights_init)
 
         # Initialize optimizer and criterion
         if settings["WLOSS"]:
@@ -106,6 +123,7 @@ def train(dataset):
             criterion = nn.CrossEntropyLoss()
 
         if str(net) == "TransferNet":
+
             optimizer = optim.Adam(net.main.classifier.parameters(), lr=settings["LR"], weight_decay=settings["DECAY"])
         else:
             optimizer = optim.Adam(net.parameters(), lr=settings["LR"], weight_decay=settings["DECAY"])
@@ -148,7 +166,6 @@ def fit_model(computing_device, net, criterion, optimizer, train_loader, validat
         # Get the next minibatch of images, labels for training
         for minibatch_count, (images, labels) in enumerate(train_loader, 0):
             fraction_done = round(minibatch_count / len(train_loader) * 100, 3)
-            print("{} percent of epoch {} complete".format(fraction_done, epoch + 1), end="\r")
             # Zero out the stored gradient (buffer) from the previous iteration
             optimizer.zero_grad()
             # Put the minibatch data in CUDA Tensors and run on the GPU if supported
@@ -182,11 +199,11 @@ def fit_model(computing_device, net, criterion, optimizer, train_loader, validat
 
         # Save this epochs training loss
         train_epoch_loss = np.average(np.array(train_batch_losses))
-        net.train_epoch_losses.append(train_epoch_loss)
+        train_epoch_losses.append(train_epoch_loss)
 
         # Validate
         with torch.no_grad():
-            for _, (images, labels) in enumerate(validation_loader, 0):
+            for images, labels in validation_loader:
                 # Put the validation mini-batch data in CUDA Tensors and run on the GPU if supported
                 images, labels = images.to(computing_device), labels.to(computing_device)
                 # Perform the forward pass through the network and compute the loss
@@ -197,7 +214,7 @@ def fit_model(computing_device, net, criterion, optimizer, train_loader, validat
 
             # Save this epochs validation loss
             val_epoch_loss = np.average(np.array(val_batch_losses))
-            net.val_epoch_losses.append(val_epoch_loss)
+            val_epoch_losses.append(val_epoch_loss)
 
         logging.info(
             'Epoch %d Training loss: %.3f Validation loss: %.3f' % (epoch + 1, train_epoch_loss, val_epoch_loss))
@@ -209,13 +226,14 @@ def plot_loss(net):
     :param net: nn.Module
     :return:
     """
-    plt.plot(net.train_epoch_losses, label="train loss")
-    plt.plot(net.val_epoch_losses, label="validation loss")
+    plt.plot(train_epoch_losses, label="train loss")
+    plt.plot(val_epoch_losses, label="validation loss")
     plt.xlabel("Epoch")
     plt.ylabel("Cross Entropy Loss")
     plt.title("Loss as a function of number of epochs")
     plt.legend()
-    plt.savefig('validation_plot_%s_%s_.png' % (settings['NNET'].__name__, TIME))
+    net_name = "TransferNet" if settings['NNET'] is None else settings['NNET'].__name__
+    plt.savefig('validation_plot_%s_%s_.png' % (net_name, get_current_time()))
 
 
 def test(net, test_dataset):

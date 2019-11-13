@@ -15,9 +15,19 @@ def get_transformers():
     dataset_std = [0.3184785, 0.28314784, 0.27949163]
     transformers = {"alon": transforms.Compose([transforms.Resize(224),
                                                 transforms.CenterCrop(224),
+                                                transforms.RandomHorizontalFlip(),
+                                                transforms.ColorJitter(),
                                                 transforms.RandomRotation(max_angle_to_rotate),
                                                 transforms.ToTensor(),
                                                 transforms.Normalize(mean=dataset_means, std=dataset_std)]),
+                    "jon": transforms.Compose([
+                                                transforms.Resize(224),
+                                                transforms.ColorJitter(),
+                                                transforms.RandomCrop(224),
+                                                transforms.RandomHorizontalFlip(),
+                                                transforms.Resize(128),
+                                                transforms.ToTensor()
+                                            ]),
                     "default": transforms.Compose([transforms.Resize(224),
                                                    transforms.CenterCrop(224),
                                                    transforms.ToTensor()])
@@ -205,7 +215,7 @@ def evaluate(output, labels, net, settings):
         evaluate_per_class.append((c, accuracy, precision, recall, bcr, aggregated_score))
 
     # Save to file as well as print to console
-    result_file = open("{}_test_results.csv".format(str(net)), mode="w")
+    result_file = open("{}_test_results.csv".format(net.__class__.__name__), mode="w")
     csv_writer = csv.writer(result_file, delimiter=',')
     csv_writer.writerow([str(settings)])
     csv_writer.writerow(headers)
