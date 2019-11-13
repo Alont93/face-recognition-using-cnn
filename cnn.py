@@ -154,6 +154,7 @@ def fit_model(computing_device, net, criterion, optimizer, train_loader, validat
     :param save_path: string
     :return:
     """
+    net.train()
     for epoch in range(settings['EPOCHS']):
         N_minibatch_loss = 0.0
         N = 50
@@ -202,6 +203,7 @@ def fit_model(computing_device, net, criterion, optimizer, train_loader, validat
 
         # Validate
         with torch.no_grad():
+            net.eval()
             for images, labels in validation_loader:
                 # Put the validation mini-batch data in CUDA Tensors and run on the GPU if supported
                 images, labels = images.to(computing_device), labels.to(computing_device)
