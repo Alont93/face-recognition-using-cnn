@@ -103,10 +103,8 @@ class ExNet(nn.Module):
 
             nn.Conv2d(384, 256, 3, stride=1),
             nn.BatchNorm2d(256),
-            nn.Dropout(0.4),
             nn.Conv2d(256, 256, 3, stride=1),
             nn.BatchNorm2d(256),
-            nn.Dropout(0.4),
             nn.Conv2d(256, 256, 3, stride=1),
             nn.BatchNorm2d(256),
             nn.MaxPool2d(3, stride=2)
