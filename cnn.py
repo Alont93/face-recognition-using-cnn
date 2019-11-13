@@ -220,8 +220,10 @@ def test(net, test_dataset):
     :return:
     """
     computing_device, extra = check_cuda()
-    test_loader = DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=settings["BATCH_SIZE"], shuffle=False)
     with torch.no_grad():
+        all_predictions = []
+        all_labels = []
         for images, labels in test_loader:  # Remember they come in batches
             images, labels = images.to(computing_device), labels.to(computing_device)
             # Since we are not doing this through criterion, we must add softmax our self
@@ -230,7 +232,12 @@ def test(net, test_dataset):
 
             predicted = func.one_hot(predicted, num_classes=settings['NUM_CLASSES']).type(torch.FloatTensor)
             labels = func.one_hot(labels, num_classes=settings['NUM_CLASSES']).type(torch.FloatTensor)
-            evaluate(predicted, labels, net, settings)
+            all_predictions.append(predicted)
+            all_labels.append(labels)
+
+        all_predictions = torch.cat(all_predictions, dim=1)
+        all_labels = torch.cat(all_labels, dim=1)
+        evaluate(all_predictions, all_labels, net, settings)
 
 
 if __name__ == '__main__':
