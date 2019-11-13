@@ -162,10 +162,8 @@ class TronNet(nn.Module):
             nn.ReLU(inplace=True),
         )
         self.fc = nn.Sequential(
-            nn.Dropout(0.4),
             nn.Linear(1210, 300),
             nn.ReLU(inplace=True),
-            nn.Dropout(0.4),
             nn.Linear(300, num_classes)
         )
 
