@@ -18,14 +18,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Custom files
-from baseline_cnn import AlexNet, Nnet, TransferNet, Loader, TransferLearning2
+from baseline_cnn import AlexNet, Nnet, Loader
 from utils import evaluate, weights_init, get_k_fold_indecies, get_transformers, get_current_time
 
 
 NETS = {
     "AlexNet": AlexNet,
     "Nnet": Nnet,
-    "TransferNet": TransferNet
+    "TransferNet": None
 }
 settings = {
     'EPOCHS': 50,
@@ -94,8 +94,8 @@ def train(dataset, weighted_loss=False):
         validation_loader = DataLoader(dataset, batch_size=batch_size, sampler=valid_sampler, num_workers=10)
 
         # Initialize CNN
-        if settings['NNET'] == TransferNet:
-            net = models.resnet152(pretrained=True)
+        if settings['NNET'] is None:
+            net = models.resnet18(pretrained=True)
 
             # Freeze parameters, so gradient not computed here
             for param in net.parameters():
@@ -223,7 +223,8 @@ def plot_loss(net):
     plt.ylabel("Cross Entropy Loss")
     plt.title("Loss as a function of number of epochs")
     plt.legend()
-    plt.savefig('validation_plot_%s_%s_.png' % (settings['NNET'].__name__, get_current_time()))
+    net_name = "TransferNet" if settings['NNET'] is None else settings['NNET'].__name__
+    plt.savefig('validation_plot_%s_%s_.png' % (net_name, get_current_time()))
 
 
 def test(net, test_dataset):
