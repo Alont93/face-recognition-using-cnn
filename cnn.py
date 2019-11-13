@@ -95,7 +95,7 @@ def train(dataset, weighted_loss=False):
 
         # Initialize CNN
         if settings['NNET'] is None:
-            net = models.resnet18(pretrained=True)
+            net = models.resnet152(pretrained=True)
 
             # Freeze parameters, so gradient not computed here
             for param in net.parameters():
@@ -115,7 +115,7 @@ def train(dataset, weighted_loss=False):
             criterion = nn.CrossEntropyLoss()
 
         if str(net) == "TransferNet":
-            optimizer = optim.Adam(net.main.classifier.parameters(), lr=0.1,  weight_decay=0.0)
+            optimizer = optim.Adam(net.main.classifier.parameters(), lr=0.008,  weight_decay=0.0005)
         else:
             optimizer = optim.Adam(net.parameters(), lr=0.0003,  weight_decay=0.0)
 
@@ -271,7 +271,7 @@ if __name__ == '__main__':
         settings['DATA_PATHS']['TEST_CSV'] = "mini_test.csv"
 
     # Load and transform data
-    transform = get_transformers()["alon"]
+    transform = get_transformers()["jon"]
     dataset = Loader(settings['DATA_PATHS']['TRAIN_CSV'], settings['DATA_PATHS']['DATASET_PATH'], transform=transform)
     test_dataset = Loader(settings['DATA_PATHS']['TEST_CSV'], settings['DATA_PATHS']['DATASET_PATH'],
                           transform=transform)

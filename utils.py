@@ -20,6 +20,14 @@ def get_transformers():
                                                 transforms.RandomRotation(max_angle_to_rotate),
                                                 transforms.ToTensor(),
                                                 transforms.Normalize(mean=dataset_means, std=dataset_std)]),
+                    "jon": transforms.Compose([
+                                                transforms.Resize(224),
+                                                transforms.ColorJitter(),
+                                                transforms.RandomCrop(224),
+                                                transforms.RandomHorizontalFlip(),
+                                                transforms.Resize(128),
+                                                transforms.ToTensor()
+                                            ]),
                     "default": transforms.Compose([transforms.Resize(224),
                                                    transforms.CenterCrop(224),
                                                    transforms.ToTensor()])
