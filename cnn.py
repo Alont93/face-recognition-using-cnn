@@ -172,7 +172,6 @@ def fit_model(computing_device, net, criterion, optimizer, train_loader, validat
             images, labels = images.to(computing_device), labels.to(computing_device)
             # Perform the forward pass through the network and compute the loss
             outputs = net(images)
-
             loss = criterion(outputs, labels)  # If we are using Cross Entropy, this is doing Softmax
             # Automagically compute the gradients and backpropagate the loss through the network
             loss.backward()
@@ -279,6 +278,7 @@ if __name__ == '__main__':
     parser.add_argument("--decay", "-d", help="Weight Decay", type=float, default=0)
     parser.add_argument("--wloss", "-wl", help="Use weighted loss", default=True)
     parser.add_argument("--transformer", "-t", help="What transformer to run on images", default="default")
+    parser.add_argument("--batch", "-b", help="Batch Size", type=int)
 
     args = parser.parse_args()
     if args.server == "True":
@@ -298,6 +298,9 @@ if __name__ == '__main__':
         settings["DECAY"] = args.decay
     settings["WLOSS"] = args.wloss == "True"
     settings["TRANSFORMER"] = args.transformer
+    if args.batch:
+        settings["BATCH_SIZE"] = args.batch
+
 
     TIME = get_current_time()
     # Load and transform data
