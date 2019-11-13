@@ -90,6 +90,47 @@ class AlexNet(nn.Module):
     def __init__(self, num_classes=201):
         super(AlexNet, self).__init__()
         self.main = nn.Sequential(
+            nn.Conv2d(3, 64, 7, stride=2),
+            nn.MaxPool2d(3, stride=2),
+            nn.BatchNorm2d(64),
+
+            nn.Conv2d(64, 192, 3, stride=1),
+            nn.BatchNorm2d(192),
+            nn.MaxPool2d(3, stride=2),
+
+            nn.Conv2d(192, 384, 3, stride=1),
+            nn.MaxPool2d(3, stride=2),
+
+            nn.Conv2d(384, 256, 3, stride=1),
+            nn.Conv2d(256, 256, 3, stride=1),
+            nn.Conv2d(256, 256, 3, stride=1),
+            nn.MaxPool2d(3, stride=2)
+        )
+        self.fc = nn.Sequential(
+            nn.Linear(1024, 512),
+            nn.ReLU(inplace=True),
+            nn.Linear(512, num_classes)
+        )
+
+        self.train_epoch_losses = []
+        self.val_epoch_losses = []
+
+    def forward(self, input):
+        x = self.main(input)
+        x = torch.flatten(x, 1)
+        return self.fc(x)
+
+    def __str__(self):
+        return "AlexNet"
+
+    def __repr__(self):
+        return "AlexNet"
+
+
+class AlexNet2(nn.Module):
+    def __init__(self, num_classes=201):
+        super(AlexNet2, self).__init__()
+        self.main = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=11, stride=4, padding=2),
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
@@ -162,4 +203,8 @@ class TransferNet(nn.Module):
 
     def __repr__(self):
         return "TransferNet"
+
+
+
+
 
