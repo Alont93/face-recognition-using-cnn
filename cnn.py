@@ -261,7 +261,7 @@ def test(net, test_dataset):
 
         all_predictions = torch.cat(all_predictions)
         all_labels = torch.cat(all_labels)
-        logging.log("Evaluating test results...")
+        logging.info("Evaluating test results...")
         evaluate(all_predictions, all_labels, net, settings)
 
 
