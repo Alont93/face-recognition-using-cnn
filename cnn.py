@@ -26,7 +26,7 @@ NETS = {
 }
 settings = {
     'EPOCHS': 50,
-    'BATCH_SIZE': 512,
+    'BATCH_SIZE': 256,
     'NUM_CLASSES': 201,
     'RANDOM_SEED': 42,
     'K-FOLD': True,
@@ -102,7 +102,7 @@ def train(dataset, weighted_loss=False):
         if str(net) == "TransferNet":
             optimizer = optim.Adam(net.main.classifier.parameters(), weight_decay=0.005)
         else:
-            optimizer = optim.Adam(net.parameters(), lr=0.0003,  weight_decay=0.005)
+            optimizer = optim.Adam(net.parameters(), lr=0.0002,  weight_decay=0.005)
 
         # Fit and save model to file
         if settings['K-FOLD']:
