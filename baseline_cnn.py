@@ -175,10 +175,10 @@ class TronNet(nn.Module):
         return self.fc(x)
 
     def __str__(self):
-        return "Nnet"
+        return "TronNet"
 
     def __repr__(self):
-        return "Nnet"
+        return "TronNet"
 
 
 
