@@ -16,11 +16,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Custom files
-from baseline_cnn import AlexNet, Nnet, TransferNet, Loader
+from baseline_cnn import ExNet, Nnet, TransferNet, Loader
 from utils import evaluate, weights_init, get_k_fold_indecies, get_transformers, get_current_time
 
 NETS = {
-    "AlexNet": AlexNet,
+    "AlexNet": ExNet,
     "Nnet": Nnet,
     "TransferNet": TransferNet
 }
@@ -34,7 +34,8 @@ settings = {
     'K-FOLD': True,
     'WLOSS': True,
     'K-FOLD-NUMBER': 2,
-    'NNET': AlexNet,
+    'NNET': ExNet,
+    'TRANSFORMER': "default",
     'DATA_PATHS': {
         'TRAIN_CSV': 'train.csv',
         'TEST_CSV': 'test.csv',
@@ -253,6 +254,7 @@ if __name__ == '__main__':
     parser.add_argument("--lr", "-lr", help="Learning Rate", type=float, default=0.0001)
     parser.add_argument("--decay", "-d", help="Weight Decay", type=float, default=0)
     parser.add_argument("--wloss", "-wl", help="Use weighted loss", default=True)
+    parser.add_argument("--transformer", "-t", help="What transformer to run on images", default="default")
 
     args = parser.parse_args()
     if args.server == "True":
@@ -271,9 +273,10 @@ if __name__ == '__main__':
     if args.decay:
         settings["DECAY"] = args.decay
     settings["WLOSS"] = args.wloss == "True"
+    settings["TRANSFORMER"] = args.transformer
 
     # Load and transform data
-    transform = get_transformers()["default"]
+    transform = get_transformers()[settings["TRANSFORMER"]]
     dataset = Loader(settings['DATA_PATHS']['TRAIN_CSV'], settings['DATA_PATHS']['DATASET_PATH'], transform=transform)
     test_dataset = Loader(settings['DATA_PATHS']['TEST_CSV'], settings['DATA_PATHS']['DATASET_PATH'],
                           transform=transform)
