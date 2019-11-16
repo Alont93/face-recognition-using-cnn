@@ -1,13 +1,84 @@
+import os
 from datetime import datetime
 
 import numpy as np
+import pandas as pd
 import torch.nn as nn
 import matplotlib.pyplot as plt
 import torchvision
+from PIL import Image
 from sklearn.model_selection import KFold
+from torch.utils.data import Dataset
 from torchvision import transforms
 import csv
 from sklearn.metrics import classification_report, confusion_matrix
+import torch
+import logging
+
+
+
+class Loader(Dataset):
+    def __init__(self, csv_file, root_dir, transform=None):
+        self.transform = transform
+        self.frame = pd.read_csv(csv_file)
+        self.root_dir = root_dir
+
+    def __len__(self):
+        return len(self.frame)
+
+    def __getitem__(self, idx):
+        img_name = os.path.join(self.root_dir, self.frame.iloc[idx, 0])
+        img = Image.open(img_name)
+        label = self.frame.iloc[idx, 1]
+
+        if self.transform:
+            img = self.transform(img)
+
+        return img, label
+
+    def get_class_weights(self):
+        """
+        Calculate the weight for each class based on number of samples of that class. Also weight = 1
+        for the unknown class 0.
+        :return: torch.Tensor - size = [#classes + 1,]
+        """
+        label_counts = self.frame.label.value_counts().sort_index()  # Count images pr label
+        class_weights = 1 / torch.Tensor(label_counts.to_list())
+        class_weights = torch.cat((torch.Tensor([1.0]), class_weights), 0)
+        class_weights = class_weights.float()
+        return class_weights
+
+def check_cuda():
+    # Check if your system supports CUDA
+    use_cuda = torch.cuda.is_available()
+
+    # Setup GPU optimization if CUDA is supported
+    if use_cuda:
+        computing_device = torch.device("cuda")
+        extras = {"num_workers": 1, "pin_memory": True}
+        logging.info("CUDA is supported")
+    else:  # Otherwise, train on the CPU
+        computing_device = torch.device("cpu")
+        extras = False
+        logging.info("CUDA NOT supported")
+    return computing_device, extras
+
+
+def plot_loss(net, settings):
+    """
+    Plot training- and validation loss over epochs
+    :param settings: Settings
+    :param net: nn.Module
+    :return:
+    """
+    plt.plot(net.train_epoch_losses, label="train loss")
+    plt.plot(net.val_epoch_losses, label="validation loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Cross Entropy Loss")
+    plt.title("Loss as a function of number of epochs")
+    plt.legend()
+    net_name = "TransferNet" if settings['NNET'] is None else settings['NNET'].__name__
+    plt.savefig('validation_plot_%s_%s_.png' % (net_name, get_current_time()))
 
 
 def get_transformers():

@@ -1,6 +1,9 @@
 # Train and test data
 datasets/cs154-fa19-public/split_Ori_Face/
 
+# mac
+.DS_Store
+
 # PyCharm
 .idea/
 
