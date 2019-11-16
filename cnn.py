@@ -179,7 +179,7 @@ def train(dataset):
             criterion = nn.CrossEntropyLoss()
 
         parameters_to_learn = []
-        if net.__class__.__name__ == "TransferNet":
+        if SETTINGS['NNET'] is None:
             for name, param in net.named_parameters():
                 if param.requires_grad:
                     parameters_to_learn.append(param)
