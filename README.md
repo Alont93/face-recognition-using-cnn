@@ -1,5 +1,20 @@
 # Deep-Learning-Assignment-3
-Deep Convolutional Network for Face Classification
+Deep Convolutional Network for Face Classification.
+
+
+Using a dataset of 200 identities in total, this project will present possible solution to build a classifier
+using CNNs implemented with PyTorch. We tested out three different architectures:
+1. The first model presented is the baseline model we were provided. This model is only used as a guideline for what our other models are at least supposed to perform.
+2. **TronNet**, is an extension of what we were provided in the baseline. We made it deeper, in hope of it learning more advanced features.
+3. we are using **transfer learning** to initialize a **ResNet18** model. Here we are downloading a pre-trained model while switching out the fully connected layers to fit our problem of 200 different identities.
+
+
+This project includes:
+* Image pre-processing such as: normalization and rotations.
+* Xavier weight initialization.
+* Our new cnn architecture for solving face classification problem - TronNet.
+* Weights Visualization of selected layers.
+* Loss Visualizations and comperisons.
 
 
 ## Setup
