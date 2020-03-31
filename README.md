@@ -1,4 +1,4 @@
-# Deep-Learning-Assignment-3
+# face-recognition-cnn
 Deep Convolutional Network for Face Classification.
 
 
